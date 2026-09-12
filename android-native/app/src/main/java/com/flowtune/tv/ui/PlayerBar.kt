@@ -31,6 +31,7 @@ fun PlayerBar(
     positionMs: Long,
     durationMs: Long,
     playMode: PlayMode,
+    isLoading: Boolean = false,
     onToggle: () -> Unit,
     onNext: () -> Unit,
     onPrev: () -> Unit,
@@ -103,10 +104,14 @@ fun PlayerBar(
                 }
             }
             Spacer(Modifier.weight(1f))
-            Text(
-                "${formatTime(positionMs / 1000.0)} / ${formatTime(durationMs / 1000.0)}",
-                color = Color(0xFF9A9AA0), fontSize = 12.sp
-            )
+            if (isLoading) {
+                Text("解析中…", color = Color(0xFF4F8CFF), fontSize = 12.sp)
+            } else {
+                Text(
+                    "${'$'}{formatTime(positionMs / 1000.0)} / ${'$'}{formatTime(durationMs / 1000.0)}",
+                    color = Color(0xFF9A9AA0), fontSize = 12.sp
+                )
+            }
         }
     }
 }

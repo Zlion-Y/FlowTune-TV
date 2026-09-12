@@ -19,7 +19,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /** 播放引擎：ExoPlayer + MediaSession + 队列。全部状态以 StateFlow 暴露给 UI。 */
-class PlaybackController(context: Context, private val config: com.flowtune.tv.data.ConfigRepository) {
+class PlaybackController(
+    context: Context,
+    private val config: com.flowtune.tv.data.ConfigRepository,
+    private val urlResolver: (suspend (Song) -> Result<String>)? = null,
+) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -43,6 +47,14 @@ class PlaybackController(context: Context, private val config: com.flowtune.tv.d
 
     private val _speed = MutableStateFlow(1f)
     val speed: StateFlow<Float> = _speed.asStateFlow()
+
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    fun clearError() { _error.value = null }
 
     val currentSong: Song? get() = _queue.value.getOrNull(_index.value)
 
@@ -94,11 +106,38 @@ class PlaybackController(context: Context, private val config: com.flowtune.tv.d
     fun playAt(index: Int) {
         val song = _queue.value.getOrNull(index) ?: return
         _index.value = index
+        _error.value = null
+        if (song.online == null) {
+            playLocal(song)
+        } else {
+            scope.launch { playOnline(song) }
+        }
+    }
+
+    private fun playLocal(song: Song) {
         val item = MediaItem.fromUri(song.path)
         player.setMediaItem(item)
         player.prepare()
         player.play()
         updateMetadata(song)
+    }
+
+    private suspend fun playOnline(song: Song) {
+        _loading.value = true
+        try {
+            val url = urlResolver?.invoke(song)?.getOrThrow()
+                ?: throw RuntimeException("未配置音源")
+            _loading.value = false
+            val item = MediaItem.fromUri(url)
+            player.setMediaItem(item)
+            player.prepare()
+            player.play()
+            updateMetadata(song)
+        } catch (e: Exception) {
+            _loading.value = false
+            _isPlaying.value = false
+            _error.value = "播放失败：${e.message}"
+        }
     }
 
     fun play() {

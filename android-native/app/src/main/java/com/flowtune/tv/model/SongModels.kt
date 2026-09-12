@@ -46,21 +46,42 @@ data class Song(
 }
 
 data class OnlineSong(
-    val source: String,     // wy/kw/kg/tx/mg
+    val source: String,             // wy/kw/kg/tx/mg
     val songId: String,
-    val hash: String? = null,
+    val title: String = "",
+    val singer: String = "",
+    val album: String = "",
+    val albumId: String = "",
+    val picUrl: String? = null,
+    val durationMs: Long = 0,
+    /** 平台特有字段：kg=FileHash，tx=songmid，mg=copyrightId。 */
+    val extras: Map<String, String> = emptyMap(),
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("source", source)
         put("songId", songId)
-        hash?.let { put("hash", it) }
+        put("title", title)
+        put("singer", singer)
+        put("album", album)
+        put("albumId", albumId)
+        picUrl?.let { put("picUrl", it) }
+        put("durationMs", durationMs)
+        put("extras", JSONObject(extras))
     }
 
     companion object {
         fun fromJson(o: JSONObject) = OnlineSong(
             source = o.optString("source"),
             songId = o.optString("songId"),
-            hash = o.optStringOrNull("hash"),
+            title = o.optString("title"),
+            singer = o.optString("singer"),
+            album = o.optString("album"),
+            albumId = o.optString("albumId"),
+            picUrl = o.optStringOrNull("picUrl"),
+            durationMs = o.optLong("durationMs", 0),
+            extras = o.optJSONObject("extras")?.let { jo ->
+                buildMap { for (k in jo.keys()) put(k, jo.optString(k)) }
+            } ?: emptyMap(),
         )
     }
 }

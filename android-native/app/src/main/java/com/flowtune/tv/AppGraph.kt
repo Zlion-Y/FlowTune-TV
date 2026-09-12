@@ -20,7 +20,7 @@ object AppGraph {
     fun init(context: Context) {
         config = ConfigRepository(context)
         media = MediaRepository(context)
-        playback = PlaybackController(context, config)
         online = OnlineRepository(config)
+        playback = PlaybackController(context, config) { song -> online.resolvePlayUrl(song, config.settings.value.playQuality) }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -21,6 +22,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flowtune.tv.model.EffectLevel
+import com.flowtune.tv.AppGraph
 
 /** 设置覆盖层：动效档位是 TV 核心设置。 */
 @Composable
@@ -49,6 +51,10 @@ fun SettingsOverlay(
             Spacer(Modifier.height(24.dp))
             LazyColumn {
                 item {
+                    Text("音源管理（LX 脚本，扫描 /sdcard/Download 与 /sdcard）", color = Color(0xFF9A9AA0), fontSize = 13.sp)
+                    Spacer(Modifier.height(10.dp))
+                    SourceManager(state)
+                    Spacer(Modifier.height(28.dp))
                     Text("动效档位（按盒子性能调整）", color = Color(0xFF9A9AA0), fontSize = 13.sp)
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -32,7 +32,9 @@ private val Accent = Color(0xFF4F8CFF)
 fun Sidebar(
     playlists: List<Playlist>,
     selectedId: String,
+    onlineTab: String?,
     onSelect: (String) -> Unit,
+    onOpenOnline: (String) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -47,10 +49,9 @@ fun Sidebar(
             fontSize = 13.sp,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
-        NavItem("歌单", icon = Icons.Filled.LibraryMusic)
-        NavItem("专辑", icon = Icons.Filled.LibraryMusic)
-        NavItem("排行榜", icon = Icons.Filled.LibraryMusic)
-        NavItem("搜索", icon = Icons.Filled.LibraryMusic)
+        NavItem("搜索", icon = Icons.Filled.LibraryMusic, active = onlineTab == "search") { onOpenOnline("search") }
+        NavItem("排行榜", icon = Icons.Filled.LibraryMusic, active = onlineTab == "charts") { onOpenOnline("charts") }
+        NavItem("歌单", icon = Icons.Filled.LibraryMusic, active = onlineTab == "playlists") { onOpenOnline("playlists") }
 
         Spacer(Modifier.height(24.dp))
         Text(
@@ -89,14 +90,14 @@ fun Sidebar(
 }
 
 @Composable
-private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: (() -> Unit)? = null) {
+private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, active: Boolean = false, onClick: (() -> Unit)? = null) {
     var focused by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 2.dp)
-            .background(if (focused) BgSelected else Color.Transparent, shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+            .background(if (focused || active) BgSelected else Color.Transparent, shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
             .let { m -> if (onClick != null) m.clickable { onClick() } else m }
             .focusable()
             .onFocusChanged { focused = it.isFocused }
