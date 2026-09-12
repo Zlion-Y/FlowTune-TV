@@ -91,8 +91,8 @@ fun SourceManager(state: AppState, firstFocus: FocusRequester? = null) {
                         .fillMaxWidth()
                         .then(if (idx == 0 && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier)
                         .onFocusChanged { focused = it.isFocused }
-                        .background(if (focused) FocusBg else Color.Transparent, RoundedCornerShape(8.dp))
-                        .tvFocusGlow(focused, RoundedCornerShape(8.dp))
+                        .background(Color.Transparent, TvShape)
+                        .tvFocusGlow(focused, TvShape)
                         .clickable {
                             scope.launch {
                                 message = "导入中：${file.name}"

@@ -75,17 +75,12 @@ fun Sidebar(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 2.dp)
                     .background(
-                        when {
-                            rowFocused -> FocusBg
-                            selected -> BgSelected
-                            else -> Color.Transparent
-                        },
+                        if (selected) BgSelected else Color.Transparent,
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
                     )
                     .tvFocusGlow(rowFocused, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                    .clickable { onSelect(pl.id) }
-                    .focusable()
                     .onFocusChanged { rowFocused = it.isFocused }
+                    .clickable { onSelect(pl.id) }
                     .padding(horizontal = 12.dp, vertical = 12.dp)
             ) {
                 Icon(
@@ -114,18 +109,13 @@ private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.Ima
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 2.dp)
             .background(
-                when {
-                    focused -> FocusBg
-                    active -> BgSelected
-                    else -> Color.Transparent
-                },
+                if (active) BgSelected else Color.Transparent,
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
             )
             .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+            .onFocusChanged { focused = it.isFocused }
             .let { m -> if (onClick != null) m.clickable { onClick() } else m }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-            .focusable()
-            .onFocusChanged { focused = it.isFocused }
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))

@@ -73,11 +73,10 @@ fun PlayerBar(
             Column(
                 Modifier
                     .width(220.dp)
-                    .background(if (infoFocused) FocusBg else Color.Transparent, RoundedCornerShape(10.dp))
+                    .background(Color.Transparent, RoundedCornerShape(10.dp))
                     .tvFocusGlow(infoFocused, RoundedCornerShape(10.dp))
-                    .clickable { onOpenDetail() }
-                    .focusable()
                     .onFocusChanged { infoFocused = it.isFocused }
+                    .clickable { onOpenDetail() }
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(

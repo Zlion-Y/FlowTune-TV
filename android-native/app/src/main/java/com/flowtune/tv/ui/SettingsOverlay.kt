@@ -60,21 +60,16 @@ fun SettingsOverlay(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .background(
-                                        when {
-                                            selected -> Color(0xFF4F8CFF)
-                                            focused -> FocusBg
-                                            else -> Color(0xFF1F1F23)
-                                        },
+                                        if (selected) Color(0xFF4F8CFF) else Color(0xFF1F1F23),
                                         RoundedCornerShape(12.dp)
                                     )
                                     .tvFocusGlow(focused, RoundedCornerShape(12.dp))
+                                    .onFocusChanged { focused = it.isFocused }
                                     .clickable {
                                         state.config.updateSettings {
                                             it.copy(effectLevel = level, effectLevelTouched = true)
                                         }
                                     }
-                                    .focusable()
-                                    .onFocusChanged { focused = it.isFocused }
                                     .padding(horizontal = 20.dp, vertical = 14.dp)
                             ) {
                                 Text(level.label, color = Color.White, fontSize = 15.sp)

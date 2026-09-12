@@ -325,10 +325,9 @@ private fun PlayRoundKey(
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
             .size(56.dp)
-            .background(FocusBg, CircleShape)
+            .background(FocusGlow, CircleShape)
             .tvFocusGlow(focused, CircleShape)
-            .clickable { onClick() }
-            .focusable(),
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "播放/暂停", tint = Color.White)
@@ -340,6 +339,6 @@ private fun PlayRoundKey(
 private fun ProgressBar(positionMs: Long, durationMs: Long) {
     val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
     Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0x33FFFFFF))) {
-        Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(FocusBg))
+        Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(FocusGlow))
     }
 }

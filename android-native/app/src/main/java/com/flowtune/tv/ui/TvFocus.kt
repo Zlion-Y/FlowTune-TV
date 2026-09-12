@@ -7,6 +7,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,28 +22,28 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material3.Icon
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * TV 焦点光圈：仅在当前聚焦的控件上出现（2dp 白线 + 4dp 蓝晕）。
- * 必须用条件挂载而非 border(0.dp)——0dp border 会按 1px hairline 渲染，
- * 导致所有控件常亮细边。
+ * TV 焦点光圈（参考系统音乐库样式）：亮蓝描边 + 向外渐隐的柔光晕，
+ * 聚焦时不改控件底色，只有光圈。多层递减 alpha 模拟柔光。
+ * 必须条件挂载而非 border(0.dp)——0dp border 会按 1px hairline 渲染。
  */
-val FocusBg = Color(0xFF4F8CFF)
-val FocusGlow = Color(0xFF4F8CFF)
+val FocusGlow = Color(0xFF5B9BFF)
 val TvShape = RoundedCornerShape(10.dp)
 
 fun Modifier.tvFocusGlow(focused: Boolean, shape: Shape): Modifier =
     if (focused) this
-        .border(4.dp, FocusGlow.copy(alpha = 0.55f), shape)
-        .border(2.dp, Color.White, shape)
+        .border(10.dp, FocusGlow.copy(alpha = 0.10f), shape)
+        .border(8.dp, FocusGlow.copy(alpha = 0.22f), shape)
+        .border(5.dp, FocusGlow.copy(alpha = 0.45f), shape)
+        .border(3.dp, FocusGlow, shape)
     else this
 
-/** TV 统一圆角文字按钮：聚焦蓝底白字+光圈，与"我的喜欢"侧栏项同圆角风格。 */
+/** TV 统一圆角文字按钮：聚焦亮光圈（底色不变），与全局圆角风格一致。 */
 @Composable
 fun TvButton(
     label: String,
@@ -60,7 +61,7 @@ fun TvButton(
         modifier
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
-            .background(if (focused) FocusBg else container, TvShape)
+            .background(container, TvShape)
             .tvFocusGlow(focused, TvShape)
             .clickable { onClick() }
             .padding(horizontal = horizontalPadding, vertical = verticalPadding),
@@ -70,7 +71,7 @@ fun TvButton(
     }
 }
 
-/** TV 统一圆角图标/内容键：与播放页控制键同款，聚焦蓝底+光圈。 */
+/** TV 统一圆角图标/内容键：聚焦亮光圈（底色不变）。 */
 @Composable
 fun TvKeyButton(
     onClick: () -> Unit,
@@ -88,10 +89,9 @@ fun TvKeyButton(
         modifier
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
-            .background(if (focused) FocusBg else container, TvShape)
+            .background(container, TvShape)
             .tvFocusGlow(focused, TvShape)
-            .clickable { onClick() }
-            .focusable(),
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         if (icon != null) Icon(icon, null, tint = iconTint) else content()

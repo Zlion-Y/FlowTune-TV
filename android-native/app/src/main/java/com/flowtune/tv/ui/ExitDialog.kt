@@ -78,11 +78,7 @@ private fun ExitButton(
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
             .background(
-                when {
-                    focused -> if (danger) Color(0xFFD84A4A) else FocusBg
-                    danger -> Color(0xFF3A2325)
-                    else -> Color(0xFF2E2E33)
-                },
+                if (danger) Color(0xFF3A2325) else Color(0xFF2E2E33),
                 shape
             )
             .tvFocusGlow(focused, shape)

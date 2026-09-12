@@ -145,7 +145,6 @@ fun OnlineScreen(
                                     .fillMaxWidth()
                                     .background(ChipBg, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
                                     .clickable { onBoardClick(id) }
-                                    .focusable()
                                     .padding(horizontal = 16.dp, vertical = 14.dp)
                             )
                             Spacer(Modifier.height(6.dp))
@@ -164,7 +163,6 @@ fun OnlineScreen(
                                     .fillMaxWidth()
                                     .background(ChipBg, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
                                     .clickable { onPlaylistClick(pl.id) }
-                                    .focusable()
                                     .padding(10.dp)
                             ) {
                                 if (pl.picUrl != null) {
@@ -223,17 +221,12 @@ private fun Chip(label: String, active: Boolean, onClick: () -> Unit) {
         fontSize = 14.sp,
         modifier = Modifier
             .background(
-                when {
-                    focused -> FocusBg
-                    active -> ChipBgActive
-                    else -> ChipBg
-                },
-                androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                if (active) ChipBgActive else ChipBg,
+                androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
             )
             .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-            .clickable { onClick() }
-            .focusable()
             .onFocusChanged { focused = it.isFocused }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 8.dp)
     )
 }
@@ -255,16 +248,12 @@ private fun OnlineRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                when {
-                    focused -> FocusBg
-                    playing -> Color(0xFF1F3A5F)
-                    else -> Color.Transparent
-                }
+                if (playing) Color(0xFF1F3A5F) else Color.Transparent
             )
             .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .onFocusChanged { focused = it.isFocused }
             .clickable { onPlay() }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-            .focusable()
             .onKeyEvent { e ->
                 if (e.type == KeyEventType.KeyUp && focused) {
                     when (e.key) {

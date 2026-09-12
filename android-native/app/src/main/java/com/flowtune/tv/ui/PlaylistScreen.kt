@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -132,15 +133,11 @@ private fun SongRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .background(
-                when {
-                    focused -> FocusBg
-                    playing -> Color(0xFF1F3A5F)
-                    else -> Color.Transparent
-                }
+                if (playing) Color(0xFF1F3A5F) else Color.Transparent
             )
             .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .onFocusChanged { focused = it.isFocused }
             .clickable { onEnter() }
-            .focusable()
             .onKeyEvent { e ->
                 // 长按右键 = 加入队列（遥控器语义）
                 if (e.type == KeyEventType.KeyUp && e.key == Key.DirectionRight && focused) {
