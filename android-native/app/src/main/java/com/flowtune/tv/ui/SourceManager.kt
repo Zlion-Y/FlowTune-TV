@@ -4,17 +4,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -24,14 +26,16 @@ import java.io.File
 
 private val Accent = Color(0xFF4F8CFF)
 
-/** 音源管理：扫描 /sdcard 下的 .js LX 音源脚本，导入 / 启用 / 删除。 */
+/** 音源管理：扫描 /sdcard 下的 .js LX 音源脚本 + URL 导入，导入 / 启用 / 删除。 */
 @Composable
-fun SourceManager(state: AppState) {
+fun SourceManager(state: AppState, firstFocus: FocusRequester? = null) {
     val sources by AppGraph.online.sources.collectAsState()
     val active by AppGraph.online.activeSource.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
     var candidates by remember { mutableStateOf<List<File>>(emptyList()) }
     var message by remember { mutableStateOf("") }
+    var urlInput by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         candidates = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -85,13 +89,18 @@ fun SourceManager(state: AppState) {
         if (candidates.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
             Text("可导入：", color = Color(0xFF88888E), fontSize = 12.sp)
-            candidates.forEach { file ->
+            candidates.forEachIndexed { idx, file ->
+                var focused by remember { mutableStateOf(false) }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .then(if (idx == 0 && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier)
+                        .onFocusChanged { focused = it.isFocused }
+                        .background(if (focused) FocusBg else Color.Transparent, RoundedCornerShape(8.dp))
+                        .tvFocusGlow(focused, RoundedCornerShape(8.dp))
                         .clickable {
-                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                            scope.launch {
                                 message = "导入中：${file.name}"
                                 val r = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                                     AppGraph.online.importSource(file)
@@ -104,11 +113,79 @@ fun SourceManager(state: AppState) {
                         }
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
-                    Text("＋ ${file.name}", color = Accent, fontSize = 13.sp, maxLines = 1)
+                    Text("＋ ${file.name}", color = Color.White, fontSize = 13.sp, maxLines = 1)
                 }
             }
         } else if (sources.isEmpty()) {
             Text("未在 /sdcard/Download 发现 .js 音源脚本", color = Color(0xFF6E6E74), fontSize = 12.sp)
+        }
+
+        // URL 音源导入
+        Spacer(Modifier.height(12.dp))
+        Text("从 URL 导入音源脚本（.js 链接）", color = Color(0xFF88888E), fontSize = 12.sp)
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(40.dp)
+                    .background(Color(0xFF1F1F23), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                BasicTextField(
+                    value = urlInput,
+                    onValueChange = { urlInput = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFFEDEDEF), fontSize = 13.sp),
+                    cursorBrush = SolidColor(Accent),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (urlInput.isEmpty()) {
+                    Text("https://…/source.js", color = Color(0xFF6E6E74), fontSize = 13.sp)
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            Button(
+                onClick = {
+                    val url = urlInput.trim()
+                    if (!url.startsWith("http")) {
+                        message = "请输入有效的 http(s) 链接"
+                    } else {
+                        scope.launch {
+                            message = "下载中…"
+                            val r = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                runCatching {
+                                    val resp = com.flowtune.tv.online.Platforms.http
+                                        .newCall(okhttp3.Request.Builder().url(url).build())
+                                        .execute()
+                                    resp.use { r2 ->
+                                        check(r2.isSuccessful) { "HTTP ${r2.code}" }
+                                        val script = r2.body!!.string()
+                                        val f = File(context.cacheDir, "lx-url-${System.currentTimeMillis()}.js")
+                                        f.writeText(script)
+                                        f
+                                    }
+                                }
+                            }
+                            val file = r.getOrNull()
+                            if (file == null) {
+                                message = "下载失败：" + (r.exceptionOrNull()?.message ?: "")
+                            } else {
+                                message = "导入中：${file.name}"
+                                val imp = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    AppGraph.online.importSource(file)
+                                }
+                                message = if (imp.getOrNull() != null) "已导入：" + imp.getOrThrow().name
+                                          else "导入失败：" + (imp.exceptionOrNull()?.message ?: "")
+                                if (imp.getOrNull() != null) urlInput = ""
+                            }
+                        }
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color.White),
+                modifier = Modifier.height(40.dp)
+            ) { Text("导入", fontSize = 13.sp) }
         }
 
         if (message.isNotEmpty()) {

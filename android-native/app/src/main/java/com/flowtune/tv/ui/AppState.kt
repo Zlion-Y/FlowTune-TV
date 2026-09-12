@@ -28,6 +28,7 @@ class AppState(
     var showSettings by mutableStateOf(false)
     var showSponsor by mutableStateOf(false)
     var lyrics by mutableStateOf<List<LyricLine>>(emptyList())
+    private var lyricsSongId: String? = null
 
     // ---- 在线 ----
     var onlineTab by mutableStateOf<String?>(null)   // null=关闭, search/charts/playlists
@@ -43,7 +44,11 @@ class AppState(
         get() = config.playlists.value.firstOrNull { it.id == selectedPlaylistId }
 
     fun loadLyricsFor(song: com.flowtune.tv.model.Song?) {
-        if (song == null) { lyrics = emptyList(); return }
+        if (song == null) { lyrics = emptyList(); lyricsSongId = null; return }
+        // 同一首歌不重复加载（切歌由 FlowTuneApp 统一观察触发）
+        if (song.id == lyricsSongId && lyrics.isNotEmpty()) return
+        lyricsSongId = song.id
+        lyrics = emptyList() // 先清，避免旧歌词在新歌位置错位显示
         CoroutineScope(Dispatchers.IO).launch {
             val (text, translation) = if (song.online != null) {
                 onlineFetchLyric(song)
@@ -57,7 +62,7 @@ class AppState(
             val merged = if (parsedTrans.isNotEmpty()) parsed.mapIndexed { i, l ->
                 l.copy(translation = parsedTrans.getOrNull(i)?.text ?: l.translation)
             } else parsed
-            withContext(Dispatchers.Main) { lyrics = merged }
+            withContext(Dispatchers.Main) { if (lyricsSongId == song.id) lyrics = merged }
         }
     }
 

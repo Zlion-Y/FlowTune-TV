@@ -1,12 +1,11 @@
 package com.flowtune.tv.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -16,11 +15,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flowtune.tv.model.EffectLevel
-import com.flowtune.tv.AppGraph
 
 /** 设置覆盖层：动效档位是 TV 核心设置。 */
 @Composable
@@ -31,18 +28,15 @@ fun SettingsOverlay(
     val settings by state.config.settings.collectAsState()
 
     BackHandler(onBack = onClose)
-    val settingsFocus = remember { FocusRequester() }
+    val firstFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(250)
-        runCatching { settingsFocus.requestFocus() }
+        runCatching { firstFocus.requestFocus() }
     }
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xCC111114))
-            .focusRequester(settingsFocus)
-            .focusable()
-
+            .background(Color(0xF2111114))
     ) {
         Column(Modifier.fillMaxSize().padding(48.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -54,7 +48,7 @@ fun SettingsOverlay(
                 item {
                     Text("音源管理（LX 脚本，扫描 /sdcard/Download 与 /sdcard）", color = Color(0xFF9A9AA0), fontSize = 13.sp)
                     Spacer(Modifier.height(10.dp))
-                    SourceManager(state)
+                    SourceManager(state, firstFocus = firstFocus)
                     Spacer(Modifier.height(28.dp))
                     Text("动效档位（按盒子性能调整）", color = Color(0xFF9A9AA0), fontSize = 13.sp)
                     Spacer(Modifier.height(10.dp))
@@ -73,6 +67,7 @@ fun SettingsOverlay(
                                         },
                                         RoundedCornerShape(12.dp)
                                     )
+                                    .tvFocusGlow(focused, RoundedCornerShape(12.dp))
                                     .clickable {
                                         state.config.updateSettings {
                                             it.copy(effectLevel = level, effectLevelTouched = true)

@@ -224,6 +224,7 @@ private fun Chip(label: String, active: Boolean, onClick: () -> Unit) {
                 },
                 androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
             )
+            .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
             .clickable { onClick() }
             .focusable()
             .onFocusChanged { focused = it.isFocused }
@@ -254,6 +255,7 @@ private fun OnlineRow(
                     else -> Color.Transparent
                 }
             )
+            .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
             .clickable { onPlay() }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .focusable()

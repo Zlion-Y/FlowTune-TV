@@ -42,6 +42,8 @@ fun FlowTuneApp(state: AppState) {
         }
     }
     LaunchedEffect(Unit) { state.loadPlaylists() }
+    // 换歌自动加载歌词（点歌/上/下一首统一走这里）
+    LaunchedEffect(currentSong?.id) { state.loadLyricsFor(currentSong) }
 
     Box(
         Modifier

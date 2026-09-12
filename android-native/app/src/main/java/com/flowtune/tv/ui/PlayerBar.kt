@@ -74,7 +74,7 @@ fun PlayerBar(
                 Modifier
                     .width(220.dp)
                     .background(if (infoFocused) FocusBg else Color.Transparent, RoundedCornerShape(10.dp))
-                    .border(2.dp, if (infoFocused) FocusBorder else Color.Transparent, RoundedCornerShape(10.dp))
+                    .tvFocusGlow(infoFocused, RoundedCornerShape(10.dp))
                     .clickable { onOpenDetail() }
                     .focusable()
                     .onFocusChanged { infoFocused = it.isFocused }

@@ -82,6 +82,7 @@ fun Sidebar(
                         },
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
                     )
+                    .tvFocusGlow(rowFocused, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
                     .clickable { onSelect(pl.id) }
                     .focusable()
                     .onFocusChanged { rowFocused = it.isFocused }
@@ -120,6 +121,7 @@ private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.Ima
                 },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
             )
+            .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
             .let { m -> if (onClick != null) m.clickable { onClick() } else m }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .focusable()

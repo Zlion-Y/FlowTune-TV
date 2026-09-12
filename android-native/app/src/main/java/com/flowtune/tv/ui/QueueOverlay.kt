@@ -36,10 +36,7 @@ fun QueueOverlay(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xCC111114))
-            .focusRequester(queueFocus)
-            .focusable()
-
+            .background(Color(0xF2111114))
     ) {
         Column(Modifier.fillMaxSize().padding(48.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -62,7 +59,9 @@ fun QueueOverlay(
                                     else -> Color.Transparent
                                 }
                             )
+                            .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
                             .clickable { onPlay(idx) }
+                            .then(if (idx == 0) Modifier.focusRequester(queueFocus) else Modifier)
                             .focusable()
                             .onFocusChanged { focused = it.isFocused }
                             .padding(horizontal = 16.dp, vertical = 12.dp)

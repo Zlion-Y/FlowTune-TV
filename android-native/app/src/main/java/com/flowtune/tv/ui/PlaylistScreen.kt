@@ -136,6 +136,7 @@ private fun SongRow(
                     else -> Color.Transparent
                 }
             )
+            .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
             .clickable { onEnter() }
             .focusable()
             .onKeyEvent { e ->
