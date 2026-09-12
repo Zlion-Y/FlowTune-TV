@@ -81,6 +81,10 @@ class PlaybackController(
             override fun onPlaybackParametersChanged(params: PlaybackParameters) {
                 _speed.value = params.speed
             }
+            override fun onPlaybackStateChanged(state: Int) {
+                // 播完（含 30s 试听片段结束）自动切下一首，避免停住像卡死
+                if (state == androidx.media3.common.Player.STATE_ENDED) next()
+            }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 _durationMs.value = duration
             }

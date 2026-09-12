@@ -38,6 +38,7 @@ class OnlineRepository(private val config: ConfigRepository) {
     val activeSource: StateFlow<LoadedSource?> = _activeSource.asStateFlow()
 
     private val _downloadState = MutableStateFlow<String?>(null)
+    fun clearDownload() { _downloadState.value = null }
     val downloadState: StateFlow<String?> = _downloadState.asStateFlow()
 
     /** 从常见目录扫描可导入的 .js 音源脚本。 */
@@ -111,8 +112,10 @@ class OnlineRepository(private val config: ConfigRepository) {
             }.recoverCatching { err ->
                 android.util.Log.e("FlowTune/Online", "source resolve failed: ${err.message}")
                 if (m.source == "wy") {
-                    Platforms.wyOuterUrl(m.songId)
+                    val url = Platforms.wyOuterUrl(m.songId)
                         ?: throw RuntimeException("音源解析失败：${err.message}")
+                    _downloadState.value = "音源解析失败，已回退试听链接（受版权限制可能只有 30 秒）"
+                    url
                 } else throw RuntimeException("音源解析失败：${err.message}")
             }
         } else {

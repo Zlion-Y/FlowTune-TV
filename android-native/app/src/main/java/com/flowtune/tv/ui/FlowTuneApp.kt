@@ -157,7 +157,8 @@ fun FlowTuneApp(state: AppState) {
         val toast = downloadState ?: playError
         if (toast != null) {
             LaunchedEffect(toast) {
-                if (toast == playError) AppGraph.playback.clearError()
+                kotlinx.coroutines.delay(3000)
+                if (toast == playError) AppGraph.playback.clearError() else AppGraph.online.clearDownload()
             }
             Box(
                 Modifier
