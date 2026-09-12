@@ -28,20 +28,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * TV 焦点光圈（参考系统音乐库样式）：亮蓝描边 + 向外渐隐的柔光晕，
- * 聚焦时不改控件底色，只有光圈。多层递减 alpha 模拟柔光。
+ * TV 焦点光圈：聚焦时单圈亮蓝线条（用户定稿：不要渐变），底色不变。
  * 必须条件挂载而非 border(0.dp)——0dp border 会按 1px hairline 渲染。
  */
 val FocusGlow = Color(0xFF5B9BFF)
 val TvShape = RoundedCornerShape(10.dp)
 
 fun Modifier.tvFocusGlow(focused: Boolean, shape: Shape): Modifier =
-    if (focused) this
-        .border(10.dp, FocusGlow.copy(alpha = 0.10f), shape)
-        .border(8.dp, FocusGlow.copy(alpha = 0.22f), shape)
-        .border(5.dp, FocusGlow.copy(alpha = 0.45f), shape)
-        .border(3.dp, FocusGlow, shape)
-    else this
+    if (focused) this.border(3.dp, FocusGlow, shape) else this
 
 /** TV 统一圆角文字按钮：聚焦亮光圈（底色不变），与全局圆角风格一致。 */
 @Composable
