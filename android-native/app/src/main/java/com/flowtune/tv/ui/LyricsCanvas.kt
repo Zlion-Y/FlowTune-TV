@@ -35,6 +35,7 @@ fun LyricsCanvas(
     positionMs: Long,
     effectLevel: EffectLevel,
     modifier: Modifier = Modifier,
+    alignLeft: Boolean = false,
 ) {
     val measurer = rememberTextMeasurer()
     val frameInterval = (1000 / effectLevel.lyricFps).toLong()
@@ -82,20 +83,22 @@ fun LyricsCanvas(
                 if (y < -lineHeight || y > size.height + lineHeight) continue
 
                 val isCurrent = i == currentIdx
+                // 原版风格：当前行显著大于其他行
                 var style = TextStyle(
-                    color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.34f),
-                    fontSize = (if (isCurrent) 30 else 26).sp,
+                    color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.38f),
+                    fontSize = (if (isCurrent) 42 else 32).sp,
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                 )
                 var measured = measurer.measure(line.text, style)
-                if (measured.size.width > size.width) {
+                if (measured.size.width > size.width - PAD) {
                     // 长行按宽度比例缩小字号，避免裁切
                     val base = style.fontSize.value
-                    val shrunk = (base * size.width / measured.size.width).toInt().coerceAtLeast(14)
+                    val avail = size.width - PAD
+                    val shrunk = (base * avail / measured.size.width).toInt().coerceAtLeast(14)
                     style = style.copy(fontSize = shrunk.sp)
                     measured = measurer.measure(line.text, style)
                 }
-                val x = (size.width - measured.size.width) / 2f
+                val x = if (alignLeft) PAD / 2f else (size.width - measured.size.width) / 2f
                 val lineY = y + (lineHeight - measured.size.height) / 2f
 
                 if (isCurrent && line.words.isNotEmpty()) {
@@ -111,6 +114,7 @@ fun LyricsCanvas(
 
 private const val LINE_H_RATIO = 0.115f
 private const val HEAD_RATIO = 0.42f
+private const val PAD = 48f
 
 private fun currentIndex(lyrics: List<LyricLine>, pos: Long): Int =
     lyrics.indexOfFirst { pos in it.startMs until it.endMs }

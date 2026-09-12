@@ -52,18 +52,20 @@ fun PlaylistScreen(
                 Spacer(Modifier.height(6.dp))
                 Text("${playlist.songs.size} 首歌曲", color = Color(0xFF9A9AA0), fontSize = 13.sp)
             }
-            Button(
+            TvButton(
+                "▶ 播放全部",
+                container = Accent,
+                fontSize = 14.sp,
+                verticalPadding = 13.dp,
                 onClick = { if (playlist.songs.isNotEmpty()) onPlay(0) },
-                enabled = playlist.songs.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color.White),
-                modifier = Modifier.height(44.dp)
-            ) { Text("▶ 播放全部", fontSize = 14.sp) }
+            )
             Spacer(Modifier.width(12.dp))
-            Button(
+            TvButton(
+                "＋ 文件夹",
+                fontSize = 14.sp,
+                verticalPadding = 13.dp,
                 onClick = { folderDialog = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E33), contentColor = Color(0xFFEDEDEF)),
-                modifier = Modifier.height(44.dp)
-            ) { Text("＋ 文件夹", fontSize = 14.sp) }
+            )
         }
 
         Spacer(Modifier.height(18.dp))

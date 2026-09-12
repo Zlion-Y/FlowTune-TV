@@ -91,30 +91,35 @@ fun PlayerBar(
                 )
             }
             Spacer(Modifier.weight(1f))
-            // 控制区
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onCycleMode) {
-                    Text(playMode.label.take(2), color = Color(0xFFB9B9BF), fontSize = 12.sp)
+            // 控制区（圆角光圈键，与全局控件风格统一）
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                TvButton(
+                    playMode.label.take(2),
+                    container = Color.Transparent,
+                    fontSize = 12.sp,
+                    horizontalPadding = 10.dp,
+                    verticalPadding = 10.dp,
+                    onClick = onCycleMode,
+                )
+                TvKeyButton(onClick = onPrev) {
+                    Icon(Icons.Filled.SkipPrevious, "上一首", tint = Color(0xFFEDEDEF))
                 }
-                IconButton(onClick = onPrev) {
-                    Icon(Icons.Filled.SkipPrevious, null, tint = Color(0xFFEDEDEF))
-                }
-                IconButton(
+                TvKeyButton(
                     onClick = onToggle,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .background(Color(0xFF2E2E33), RoundedCornerShape(50))
+                    width = 64.dp,
+                    height = 48.dp,
+                    container = Color(0xFF2E2E33),
                 ) {
                     Icon(
                         if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        null, tint = Color.White
+                        "播放/暂停", tint = Color.White
                     )
                 }
-                IconButton(onClick = onNext) {
-                    Icon(Icons.Filled.SkipNext, null, tint = Color(0xFFEDEDEF))
+                TvKeyButton(onClick = onNext) {
+                    Icon(Icons.Filled.SkipNext, "下一首", tint = Color(0xFFEDEDEF))
                 }
-                IconButton(onClick = onOpenQueue) {
-                    Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color(0xFFB9B9BF))
+                TvKeyButton(onClick = onOpenQueue) {
+                    Icon(Icons.AutoMirrored.Filled.QueueMusic, "播放队列", tint = Color(0xFFB9B9BF))
                 }
             }
             Spacer(Modifier.weight(1f))

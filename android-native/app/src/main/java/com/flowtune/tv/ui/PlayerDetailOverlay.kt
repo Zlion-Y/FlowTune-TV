@@ -1,20 +1,22 @@
 package com.flowtune.tv.ui
 
+import android.graphics.BitmapFactory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.automirrored.filled.QueueMusic
-import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -33,17 +35,25 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.flowtune.tv.model.EffectLevel
 import com.flowtune.tv.model.Song
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val QUALITY_CYCLE = listOf("128k" to "标准 128k", "320k" to "高清 320k", "flac" to "无损 FLAC")
+private val SPEED_CYCLE = listOf(1.0f, 1.25f, 1.5f, 0.75f)
 
-private fun qualityLabel(q: String) = QUALITY_CYCLE.firstOrNull { it.first == q }?.second ?: q
+private fun qualityBadge(q: String) = when (q) {
+    "flac" -> "FLAC"
+    "320k" -> "320K"
+    else -> "128K"
+}
 
-/** 全屏播放页覆盖层：封面（在线URL/本地）+ 静态封面底图 + 逐字歌词；控制键 4s 无操作自动隐藏。 */
+/** 全屏播放页：一比一还原 FluentPlayer 布局（仅去桌面歌词/音量），背景为静态封面模糊。 */
 @Composable
 fun PlayerDetailOverlay(
     state: AppState,
@@ -56,26 +66,33 @@ fun PlayerDetailOverlay(
 ) {
     val coverPath = song?.coverUri
     val isLocalCover = song?.online == null
-    var coverBitmap by remember(song?.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
 
-    // 本地封面解码；在线封面走 coil（AsyncImage）
+    // 静态模糊封面：解码原图 → 缩成 ~24px 小图 → 放大显示即为模糊（全 API 兼容）
+    var blurredBg by remember(song?.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
     LaunchedEffect(coverPath, isLocalCover) {
-        if (coverPath != null && isLocalCover) {
-            coverBitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                runCatching { android.graphics.BitmapFactory.decodeFile(coverPath) }.getOrNull()
-            }
-        } else {
-            coverBitmap = null
+        blurredBg = if (coverPath == null) null else withContext(Dispatchers.IO) {
+            runCatching {
+                val src = if (isLocalCover) {
+                    BitmapFactory.decodeFile(coverPath)
+                } else {
+                    val bytes = java.net.URL(coverPath).openStream().use { it.readBytes() }
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                }
+                src?.let {
+                    val small = android.graphics.Bitmap.createScaledBitmap(it, 24, 24, true)
+                    if (small !== it) it.recycle()
+                    small
+                }
+            }.getOrNull()
         }
     }
-    val coverModel: Any? = when {
-        coverBitmap != null -> coverBitmap!!.asImageBitmap()
-        coverPath != null && !isLocalCover -> coverPath
+    val sharpCoverModel: Any? = when {
+        coverPath != null && isLocalCover -> coverPath
+        coverPath != null -> coverPath
         else -> null
     }
 
-    // 控制键显隐：打开显示并聚焦播放键；4s 无操作隐藏；隐藏态按导航/OK 键唤醒（消费防误触），
-    // 显示态按键只刷新计时、不干预焦点（否则方向键导航会被拉回播放键）
+    // 控制条显隐：打开显示并聚焦播放键；4s 无操作隐藏；隐藏态按键唤醒（消费防误触）
     var controlsVisible by remember { mutableStateOf(true) }
     var lastInteractMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var wakeCount by remember { mutableStateOf(0) }
@@ -88,7 +105,7 @@ fun PlayerDetailOverlay(
     }
     LaunchedEffect(wakeCount) {
         if (wakeCount > 0) {
-            kotlinx.coroutines.delay(120) // 等控制键重新组合完成
+            kotlinx.coroutines.delay(120)
             runCatching { playKeyFocus.requestFocus() }
         }
     }
@@ -97,7 +114,7 @@ fun PlayerDetailOverlay(
             kotlinx.coroutines.delay(4000)
             if (System.currentTimeMillis() - lastInteractMs >= 4000) {
                 controlsVisible = false
-                runCatching { overlayFocus.requestFocus() } // 隐藏后焦点交给容器，避免隐形焦点误触
+                runCatching { overlayFocus.requestFocus() }
             }
         }
     }
@@ -120,108 +137,174 @@ fun PlayerDetailOverlay(
                 } else false
             }
     ) {
-        // 静态封面底图：所有档位显示（动效档位只影响歌词动画）
-        if (coverModel != null) {
-            AsyncImage(
-                model = coverModel,
+        // 静态模糊封面背景 + 深色遮罩
+        if (blurredBg != null) {
+            Image(
+                bitmap = blurredBg!!.asImageBitmap(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
+        }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(Color(0x73101218), Color(0xC2101218))))
+        )
+
+        // 主区：左封面 + 右歌词
+        Row(
+            Modifier
+                .fillMaxSize()
+                .padding(start = 56.dp, end = 48.dp, bottom = 96.dp, top = 32.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 Modifier
-                    .fillMaxSize()
-                    .background(Brush.verticalGradient(listOf(Color(0x9B101218), Color(0xE8101018))))
-            )
-        }
-
-        // 封面左侧 + 歌词右侧
-        Row(Modifier.fillMaxSize().padding(horizontal = 64.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    Modifier
-                        .size(320.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF2A2A30)),
-                    contentAlignment = Alignment.Center
+                    .size(340.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF2A2A30)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (coverPath != null) {
+                    AsyncImage(
+                        model = sharpCoverModel,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text("♪", color = Color(0xFF6E6E74), fontSize = 56.sp)
+                }
+            }
+            Spacer(Modifier.width(56.dp))
+            Column(Modifier.weight(1f).fillMaxHeight()) {
+                // 歌词视图指示圆点（原版样式）
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(bottom = 14.dp)
                 ) {
-                    if (coverModel != null) {
-                        AsyncImage(
-                            model = coverModel,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                    repeat(3) { i ->
+                        Box(
+                            Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    when (i) {
+                                        0 -> Color.White.copy(alpha = 0.95f)
+                                        1 -> Color.White.copy(alpha = 0.55f)
+                                        else -> Color.White.copy(alpha = 0.22f)
+                                    }
+                                )
                         )
-                    } else {
-                        Text("♪", color = Color(0xFF6E6E74), fontSize = 64.sp)
                     }
                 }
-                Spacer(Modifier.height(28.dp))
-                Text(song?.title ?: "", color = Color.White, fontSize = 24.sp, maxLines = 1)
-                Text(song?.artist?.ifBlank { "未知艺术家" } ?: "", color = Color(0xFF9A9AA0), fontSize = 14.sp, maxLines = 1)
-            }
-            Spacer(Modifier.width(64.dp))
-            Box(Modifier.weight(1f).fillMaxHeight()) {
-                LyricsCanvas(
-                    lyrics = state.lyrics,
-                    positionMs = positionMs,
-                    effectLevel = effectLevel,
-                    modifier = Modifier.fillMaxSize()
-                )
-                if (state.lyrics.isEmpty()) {
-                    Text(
-                        "暂无歌词",
-                        color = Color(0xFF6E6E74), fontSize = 16.sp,
-                        modifier = Modifier.align(Alignment.Center)
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    LyricsCanvas(
+                        lyrics = state.lyrics,
+                        positionMs = positionMs,
+                        effectLevel = effectLevel,
+                        alignLeft = true,
+                        modifier = Modifier.fillMaxSize()
                     )
+                    if (state.lyrics.isEmpty()) {
+                        Text("暂无歌词", color = Color(0xFF6E6E74), fontSize = 15.sp, modifier = Modifier.align(Alignment.Center))
+                    }
                 }
             }
         }
 
-        // 顶部关闭提示
-        Text("返回键退出全屏", color = Color(0x99EDEDEF), fontSize = 12.sp, modifier = Modifier.align(Alignment.TopStart).padding(20.dp))
+        // 顶部提示
+        Text(
+            "返回键退出全屏",
+            color = Color(0x80EDEDEF), fontSize = 11.sp,
+            modifier = Modifier.align(Alignment.TopStart).padding(20.dp)
+        )
 
-        // 底部控制条：上一首 | 播放 | 下一首 | 队列 | 音质，4s 自动隐藏
+        // 底栏：进度条横贯 + 歌名 | 控制 | 时间/音质/倍速（一比一还原，4s 自动隐藏）
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
+            modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PlayerControlKey(onClick = { touch(); state.playback.previous() }) {
-                    Icon(Icons.Filled.SkipPrevious, "上一首", tint = Color.White)
-                }
-                PlayerControlKey(
-                    onClick = { touch(); state.playback.toggle() },
-                    big = true,
-                    focusRequester = playKeyFocus,
+            Column {
+                ProgressBar(positionMs, durationMs)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Color(0x3D000000))
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "播放/暂停", tint = Color.White)
-                }
-                PlayerControlKey(onClick = { touch(); state.playback.next() }) {
-                    Icon(Icons.Filled.SkipNext, "下一首", tint = Color.White)
-                }
-                PlayerControlKey(onClick = { touch(); state.showQueue = true }) {
-                    Icon(Icons.AutoMirrored.Filled.QueueMusic, "播放队列", tint = Color.White)
-                }
-                if (song?.online != null) {
-                    val settings by state.config.settings.collectAsState()
-                    PlayerControlKey(
-                        onClick = {
-                            touch()
-                            val cur = settings.playQuality
-                            val next = QUALITY_CYCLE[(QUALITY_CYCLE.indexOfFirst { it.first == cur } + 1).coerceAtLeast(0) % QUALITY_CYCLE.size]
-                            state.config.updateSettings { it.copy(playQuality = next.first) }
-                            // 切音质后重播当前歌立即生效
-                            state.playback.playAt(state.playback.index.value)
-                        },
-                        wide = true,
-                    ) {
-                        Text(qualityLabel(settings.playQuality), color = Color.White, fontSize = 13.sp, maxLines = 1)
+                    // 左：歌名/歌手
+                    Column(Modifier.width(260.dp)) {
+                        Text(song?.title ?: "", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text(song?.artist?.ifBlank { "未知艺术家" } ?: "", color = Color(0xFF9A9AA0), fontSize = 11.sp, maxLines = 1)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    // 中：模式 | 上一首 | 播放(正圆蓝) | 下一首 | 队列
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        val playMode by state.playback.playMode.collectAsState()
+                        TvButton(
+                            playMode.label.take(2),
+                            container = Color.Transparent,
+                            fontSize = 12.sp,
+                            horizontalPadding = 8.dp,
+                            verticalPadding = 8.dp,
+                            onClick = { touch(); state.playback.cyclePlayMode() },
+                        )
+                        TvKeyButton(onClick = { touch(); state.playback.previous() }) {
+                            Icon(Icons.Filled.SkipPrevious, "上一首", tint = Color.White)
+                        }
+                        PlayRoundKey(
+                            isPlaying = isPlaying,
+                            focusRequester = playKeyFocus,
+                            onClick = { touch(); state.playback.toggle() },
+                        )
+                        TvKeyButton(onClick = { touch(); state.playback.next() }) {
+                            Icon(Icons.Filled.SkipNext, "下一首", tint = Color.White)
+                        }
+                        TvKeyButton(onClick = { touch(); state.showQueue = true }) {
+                            Icon(Icons.AutoMirrored.Filled.QueueMusic, "播放队列", tint = Color.White)
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    // 右：时间 | 音质 | 倍速
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        val speed by state.playback.speed.collectAsState()
+                        Text(
+                            formatTime(positionMs / 1000.0) + " / " + formatTime(durationMs / 1000.0),
+                            color = Color(0xFFD8D8DC), fontSize = 12.sp
+                        )
+                        if (song?.online != null) {
+                            val settings by state.config.settings.collectAsState()
+                            TvButton(
+                                qualityBadge(settings.playQuality),
+                                container = Color(0x2EFFFFFF),
+                                fontSize = 11.sp,
+                                horizontalPadding = 10.dp,
+                                verticalPadding = 6.dp,
+                                onClick = {
+                                    touch()
+                                    val next = QUALITY_CYCLE[(QUALITY_CYCLE.indexOfFirst { it.first == settings.playQuality } + 1).coerceAtLeast(0) % QUALITY_CYCLE.size]
+                                    state.config.updateSettings { it.copy(playQuality = next.first) }
+                                    state.playback.playAt(state.playback.index.value)
+                                },
+                            )
+                        }
+                        TvButton(
+                            String.format("%.2fx", speed),
+                            container = Color.Transparent,
+                            fontSize = 12.sp,
+                            horizontalPadding = 6.dp,
+                            verticalPadding = 6.dp,
+                            onClick = {
+                                touch()
+                                val next = SPEED_CYCLE[(SPEED_CYCLE.indexOf(speed) + 1) % SPEED_CYCLE.size]
+                                state.playback.setSpeed(next)
+                            },
+                        )
                     }
                 }
             }
@@ -229,32 +312,34 @@ fun PlayerDetailOverlay(
     }
 }
 
-/** 播放页控制键：自绘焦点光圈（material IconButton 在 TV 上无焦点视觉）。 */
+/** 播放大圆键：蓝底正圆白标，与原版一致，聚焦加光圈。 */
 @Composable
-private fun PlayerControlKey(
+private fun PlayRoundKey(
+    isPlaying: Boolean,
+    focusRequester: FocusRequester?,
     onClick: () -> Unit,
-    big: Boolean = false,
-    wide: Boolean = false,
-    focusRequester: FocusRequester? = null,
-    content: @Composable () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(50)
-    val w = when {
-        wide -> 96.dp
-        big -> 64.dp
-        else -> 52.dp
-    }
-    val h = if (big) 64.dp else 52.dp
     Box(
         Modifier
-            .size(width = w, height = h)
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
-            .background(if (focused) FocusBg else Color(0x883A3A40), shape)
-            .tvFocusGlow(focused, shape)
+            .size(56.dp)
+            .background(FocusBg, CircleShape)
+            .tvFocusGlow(focused, CircleShape)
             .clickable { onClick() }
             .focusable(),
         contentAlignment = Alignment.Center
-    ) { content() }
+    ) {
+        Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "播放/暂停", tint = Color.White)
+    }
+}
+
+/** 细进度条（原版样式：横贯底栏顶部，蓝色已播）。 */
+@Composable
+private fun ProgressBar(positionMs: Long, durationMs: Long) {
+    val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+    Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0x33FFFFFF))) {
+        Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(FocusBg))
+    }
 }

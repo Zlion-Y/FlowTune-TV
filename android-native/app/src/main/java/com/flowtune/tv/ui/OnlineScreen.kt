@@ -98,12 +98,14 @@ fun OnlineScreen(
         when (tab) {
             "search" -> {
                 var query by remember(searchQuery) { mutableStateOf(searchQuery) }
+                var fieldFocused by remember { mutableStateOf(false) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
                             .weight(1f)
                             .height(44.dp)
                             .background(ChipBg, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                            .tvFocusGlow(fieldFocused, TvShape)
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
@@ -113,18 +115,22 @@ fun OnlineScreen(
                             singleLine = true,
                             textStyle = TextStyle(color = Color(0xFFEDEDEF), fontSize = 15.sp),
                             cursorBrush = SolidColor(Accent),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { fieldFocused = it.isFocused }
                         )
                         if (query.isEmpty()) {
                             Text("输入歌名 / 歌手", color = Color(0xFF6E6E74), fontSize = 14.sp)
                         }
                     }
                     Spacer(Modifier.width(12.dp))
-                    Button(
+                    TvButton(
+                        "搜索",
+                        container = Accent,
+                        fontSize = 14.sp,
+                        verticalPadding = 13.dp,
                         onClick = { if (query.isNotBlank()) onSearch(query) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color.White),
-                        modifier = Modifier.height(44.dp)
-                    ) { Text("搜索", fontSize = 14.sp) }
+                    )
                 }
                 Spacer(Modifier.height(14.dp))
             }
