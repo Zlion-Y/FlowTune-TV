@@ -36,7 +36,8 @@ fun SettingsOverlay(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xF2111114))
+            .background(Color(0xFF14161A))
+            .tvBackToClose(onClose)
     ) {
         Column(Modifier.fillMaxSize().padding(48.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -85,6 +86,24 @@ fun SettingsOverlay(
                                 )
                             }
                         }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    var autoOpenFocused by remember { mutableStateOf(false) }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .onFocusChanged { autoOpenFocused = it.isFocused }
+                            .background(Color(0xFF1F1F23), RoundedCornerShape(12.dp))
+                            .tvFocusGlow(autoOpenFocused, RoundedCornerShape(12.dp))
+                            .clickable {
+                                state.config.updateSettings { it.copy(autoOpenPlayer = !it.autoOpenPlayer) }
+                            }
+                            .padding(horizontal = 20.dp, vertical = 14.dp)
+                    ) {
+                        Text(
+                            "播放歌曲自动进入播放页：" + if (settings.autoOpenPlayer) "开" else "关",
+                            color = Color.White, fontSize = 15.sp
+                        )
                     }
                     Spacer(Modifier.height(24.dp))
                     Text(

@@ -138,12 +138,15 @@ fun OnlineScreen(
                 if (boardSongs == null) {
                     LazyColumn {
                         itemsIndexed(boards) { _, (id, name) ->
+                            var rowFocused by remember { mutableStateOf(false) }
                             Text(
                                 name,
-                                color = Color(0xFFEDEDEF), fontSize = 16.sp,
+                                color = if (rowFocused) Color.White else Color(0xFFCFCFD4), fontSize = 16.sp,
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .onFocusChanged { rowFocused = it.isFocused }
                                     .background(ChipBg, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                                    .tvFocusGlow(rowFocused, TvShape)
                                     .clickable { onBoardClick(id) }
                                     .padding(horizontal = 16.dp, vertical = 14.dp)
                             )
@@ -157,11 +160,14 @@ fun OnlineScreen(
                 if (playlistSongs == null) {
                     LazyColumn {
                         itemsIndexed(playlists) { _, pl ->
+                            var rowFocused by remember { mutableStateOf(false) }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .onFocusChanged { rowFocused = it.isFocused }
                                     .background(ChipBg, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                                    .tvFocusGlow(rowFocused, TvShape)
                                     .clickable { onPlaylistClick(pl.id) }
                                     .padding(10.dp)
                             ) {

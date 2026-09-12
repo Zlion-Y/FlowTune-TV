@@ -49,7 +49,10 @@ fun FlowTuneApp(state: AppState) {
     ) { showExit = true }
     LaunchedEffect(Unit) { state.loadPlaylists() }
     // 换歌自动加载歌词（点歌/上/下一首统一走这里）
-    LaunchedEffect(currentSong?.id) { state.loadLyricsFor(currentSong) }
+    LaunchedEffect(currentSong?.id) {
+        state.loadLyricsFor(currentSong)
+        if (settings.autoOpenPlayer && currentSong != null) state.showPlayerDetail = true
+    }
 
     Box(
         Modifier

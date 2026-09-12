@@ -33,7 +33,7 @@ fun SponsorOverlay(onClose: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xF2111114))
+            .background(Color(0xFF14161A))
             .focusRequester(closeFocus)
             .clickable { onClose() },
         contentAlignment = Alignment.Center

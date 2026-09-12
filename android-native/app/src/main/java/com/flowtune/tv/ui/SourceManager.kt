@@ -1,5 +1,6 @@
 package com.flowtune.tv.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -17,6 +18,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -40,6 +42,17 @@ fun SourceManager(state: AppState, firstFocus: FocusRequester? = null) {
     LaunchedEffect(Unit) {
         candidates = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             AppGraph.online.scanSourceFiles(context)
+        }
+    }
+    // 局域网上传的音源自动导入
+    LaunchedEffect(Unit) {
+        com.flowtune.tv.online.LanSourceServer.uploads.collect { file ->
+            message = "收到上传：${file.name}，导入中…"
+            val imp = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                AppGraph.online.importSource(file)
+            }
+            message = if (imp.getOrNull() != null) "已导入：" + imp.getOrThrow().name
+                      else "导入失败：" + (imp.exceptionOrNull()?.message ?: "")
         }
     }
 
@@ -182,6 +195,55 @@ fun SourceManager(state: AppState, firstFocus: FocusRequester? = null) {
                             if (imp.getOrNull() != null) urlInput = ""
                         }
                     }
+                }
+            }
+        }
+
+        // 局域网导入：手机/电脑浏览器上传，扫码直达
+        Spacer(Modifier.height(16.dp))
+        Text("局域网导入（手机/电脑上传音源）", color = Color(0xFF88888E), fontSize = 12.sp)
+        Spacer(Modifier.height(6.dp))
+        var lanUrl by remember { mutableStateOf<String?>(null) }
+        var qr by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            TvButton(
+                if (lanUrl != null) "停止服务" else "启动服务",
+                container = if (lanUrl != null) Color(0xFF3A2325) else Accent,
+                verticalPadding = 10.dp,
+                onClick = {
+                    if (lanUrl != null) {
+                        com.flowtune.tv.online.LanSourceServer.stop()
+                        lanUrl = null; qr = null
+                        message = "局域网导入服务已停止"
+                    } else {
+                        lanUrl = com.flowtune.tv.online.LanSourceServer.start(context.cacheDir) { message = it }
+                        lanUrl?.let { qr = com.flowtune.tv.online.LanSourceServer.qrBitmap(it) }
+                    }
+                },
+            )
+            Text(
+                if (lanUrl != null) "服务运行中，上传后自动导入" else "启动后手机扫码或浏览器访问即可上传 .js 音源",
+                color = Color(0xFF88888E), fontSize = 11.sp
+            )
+        }
+        lanUrl?.let { url ->
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                qr?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = "上传地址二维码",
+                        modifier = Modifier
+                            .size(150.dp)
+                            .background(Color.White, RoundedCornerShape(10.dp))
+                            .padding(6.dp)
+                    )
+                }
+                Spacer(Modifier.width(14.dp))
+                Column {
+                    Text(url, color = Accent, fontSize = 14.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text("手机扫码打开上传页，选择 .js 文件上传后自动导入", color = Color(0xFF88888E), fontSize = 11.sp)
                 }
             }
         }

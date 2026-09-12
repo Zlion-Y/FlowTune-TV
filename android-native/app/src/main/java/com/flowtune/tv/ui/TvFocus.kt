@@ -22,6 +22,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -36,6 +41,14 @@ val TvShape = RoundedCornerShape(10.dp)
 
 fun Modifier.tvFocusGlow(focused: Boolean, shape: Shape): Modifier =
     if (focused) this.border(3.dp, FocusGlow, shape) else this
+
+/** 覆盖层根容器用：BACK 一次直接关闭（绕开 focusTarget 拦 BACK 清焦点的行为）。 */
+fun Modifier.tvBackToClose(onClose: () -> Unit): Modifier =
+    this.onPreviewKeyEvent { e ->
+        if (e.type == KeyEventType.KeyUp && e.key == Key.Back) {
+            onClose(); true
+        } else false
+    }
 
 /** TV 统一圆角文字按钮：聚焦亮光圈（底色不变），与全局圆角风格一致。 */
 @Composable

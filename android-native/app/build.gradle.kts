@@ -66,6 +66,8 @@ dependencies {
 
     // 标签
     implementation("net.jthink:jaudiotagger:3.0.1")
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
+    implementation("com.google.zxing:core:3.5.3")
 
     // 网络（在线平台）
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

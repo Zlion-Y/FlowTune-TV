@@ -36,7 +36,8 @@ fun QueueOverlay(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xF2111114))
+            .background(Color(0xFF14161A))
+            .tvBackToClose(onClose)
     ) {
         Column(Modifier.fillMaxSize().padding(48.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

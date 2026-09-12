@@ -127,6 +127,7 @@ fun PlayerDetailOverlay(
             .background(Color(0xFF14161C))
             .focusRequester(overlayFocus)
             .focusable()
+            .tvBackToClose(onClose)
             .onKeyEvent { e ->
                 if (e.type == KeyEventType.KeyUp && listOf(
                         Key.DirectionUp, Key.DirectionDown, Key.DirectionLeft,
