@@ -131,8 +131,8 @@ private fun SongRow(
         modifier = modifier
             .background(
                 when {
+                    focused -> FocusBg
                     playing -> Color(0xFF1F3A5F)
-                    focused -> Color(0xFF2E2E33)
                     else -> Color.Transparent
                 }
             )
@@ -147,7 +147,7 @@ private fun SongRow(
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Text("${index + 1}", color = Color(0xFF9A9AA0), fontSize = 13.sp, modifier = Modifier.width(36.dp))
-        Text(song.title, color = if (playing) Accent else Color(0xFFEDEDEF), fontSize = 15.sp, modifier = Modifier.weight(2.2f), maxLines = 1)
+        Text(song.title, color = if (focused || playing) Color.White else Color(0xFFEDEDEF), fontSize = 15.sp, modifier = Modifier.weight(2.2f), maxLines = 1)
         Text(song.artist.ifBlank { "未知艺术家" }, color = Color(0xFF9A9AA0), fontSize = 13.sp, modifier = Modifier.weight(1.4f), maxLines = 1)
         Text(song.album.ifBlank { "-" }, color = Color(0xFF9A9AA0), fontSize = 13.sp, modifier = Modifier.weight(1.4f), maxLines = 1)
         Text(formatTime(song.durationSec), color = Color(0xFF9A9AA0), fontSize = 13.sp, modifier = Modifier.width(64.dp))

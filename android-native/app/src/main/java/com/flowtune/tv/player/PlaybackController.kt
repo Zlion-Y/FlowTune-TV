@@ -58,8 +58,23 @@ class PlaybackController(
 
     val currentSong: Song? get() = _queue.value.getOrNull(_index.value)
 
-    private val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
+    private val player: ExoPlayer = ExoPlayer.Builder(context)
+        .setMediaSourceFactory(
+            androidx.media3.exoplayer.source.DefaultMediaSourceFactory(
+                androidx.media3.datasource.DefaultHttpDataSource.Factory()
+                    // 网易云外链等会 302 http→https，必须允许跨协议重定向
+                    .setAllowCrossProtocolRedirects(true)
+                    .setUserAgent("Mozilla/5.0 (Linux; Android 11; TV) FlowTune/2.1.1")
+                    .setConnectTimeoutMs(10_000)
+                    .setReadTimeoutMs(15_000)
+            )
+        )
+        .build().apply {
         addListener(object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                _error.value = "播放出错：${error.errorCodeName}"
+                _loading.value = false
+            }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
             }
@@ -134,6 +149,7 @@ class PlaybackController(
             player.play()
             updateMetadata(song)
         } catch (e: Exception) {
+            android.util.Log.e("FlowTune/Online", "playOnline failed", e)
             _loading.value = false
             _isPlaying.value = false
             _error.value = "播放失败：${e.message}"

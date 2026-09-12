@@ -26,6 +26,7 @@ class AppState(
     var showPlayerDetail by mutableStateOf(false)
     var showQueue by mutableStateOf(false)
     var showSettings by mutableStateOf(false)
+    var showSponsor by mutableStateOf(false)
     var lyrics by mutableStateOf<List<LyricLine>>(emptyList())
 
     // ---- 在线 ----

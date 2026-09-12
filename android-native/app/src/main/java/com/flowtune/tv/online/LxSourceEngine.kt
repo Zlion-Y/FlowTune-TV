@@ -5,6 +5,7 @@ import com.dokar.quickjs.QuickJs
 import com.dokar.quickjs.binding.AsyncFunctionBinding
 import com.dokar.quickjs.binding.FunctionBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -51,6 +52,7 @@ class LxSourceEngine private constructor(private val quickJs: QuickJs) {
     private suspend fun registerBridges() {
         // 同步 HTTP（JS 视角阻塞式，返回 {statusCode, headers, body} JSON）
         quickJs.defineBinding("__nativeHttp", FunctionBinding { args ->
+            android.util.Log.d("FlowTune/Online", "__nativeHttp: " + (args?.getOrNull(0) as? String ?: "null").take(120))
             val req = org.json.JSONObject(args?.getOrNull(0) as? String ?: "{}")
             val builder = okhttp3.Request.Builder().url(req.getString("url"))
             val headers = req.optJSONObject("headers") ?: org.json.JSONObject()
@@ -174,23 +176,23 @@ class LxSourceEngine private constructor(private val quickJs: QuickJs) {
      * 返回处理器结果（通常为 URL 字符串）。
      */
     suspend fun callHandler(action: String, source: String, infoJson: String, timeoutMs: Long = 25_000): String {
-        val expr = """
-            (async () => {
-              var handler = globalThis.__lxHandler;
-              if (!handler) throw new Error('音源脚本未初始化');
-              try {
-                var v = await handler({ source: ${jStr(source)}, action: ${jStr(action)}, info: ${infoJson} });
-                if (v && typeof v === 'object' && typeof v.url === 'string') v = v.url;
-                return JSON.stringify({ ok: true, data: v });
-              } catch (e) {
-                return JSON.stringify({ ok: false, msg: String(e && e.message || e) });
-              }
-            })()
-        """.trimIndent()
-        val result = withTimeout(timeoutMs) {
-            quickJs.evaluate<String>(expr, filename = "lx-call.js", asModule = true)
+        quickJs.evaluate<Any?>("globalThis.__lxResult = null;")
+        quickJs.evaluate<Any?>(
+            "__lxCallFire(${jStr(action)}, ${jStr(source)}, ${jStr(infoJson)});",
+            filename = "lx-fire.js"
+        )
+        // 轮询触发 Promise 任务泵：quickjs-kt 每次 evaluate 都会执行 pending jobs
+        withTimeout(timeoutMs) {
+            while (true) {
+                delay(25)
+                val r = quickJs.evaluate<String?>("globalThis.__lxResult")
+                if (r != null) break
+            }
         }
-        val obj = org.json.JSONObject(result)
+        val raw = quickJs.evaluate<String?>("globalThis.__lxResult")
+            ?: throw RuntimeException("音源响应超时")
+        android.util.Log.d("FlowTune/Online", "lx callHandler action=$action -> $raw")
+        val obj = org.json.JSONObject(raw)
         if (!obj.optBoolean("ok")) throw RuntimeException(obj.optString("msg", "音源返回失败"))
         return when (val data = obj.opt("data")) {
             is String -> data
@@ -267,11 +269,11 @@ class LxSourceEngine private constructor(private val quickJs: QuickJs) {
         form: o.form || null,
         timeout: o.timeout || 15000
       };
-      var p = __nativeHttp(JSON.stringify(payload)).then(function(rj) {
-        var resp = JSON.parse(rj);
+      var p = Promise.resolve(__nativeHttp(JSON.stringify(payload))).then(function(rj) {
+        var resp = (typeof rj === 'string') ? JSON.parse(rj) : rj;
         var body = resp.body;
         var parsed;
-        try { parsed = JSON.parse(body); } catch (e) { parsed = body; }
+        try { parsed = (typeof body === 'string') ? JSON.parse(body) : body; } catch (e) { parsed = body; }
         resp.body = parsed;
         resp.raw = { toString: function() { return body; } };
         resp.bytes = body.length;
@@ -322,6 +324,24 @@ class LxSourceEngine private constructor(private val quickJs: QuickJs) {
         deflate: function(data) { return Promise.resolve(b64ToU8(__deflate(u8ToB64(typeof data === 'string' ? utf8ToU8(data) : data)))); },
       },
     },
+  };
+
+  globalThis.__lxResult = null;
+  globalThis.__lxCallFire = function(action, source, infoJson) {
+    var handler = globalThis.__lxHandler;
+    if (!handler) { globalThis.__lxResult = JSON.stringify({ok:false, msg:'音源脚本未初始化'}); return; }
+    try {
+      var info = (typeof infoJson === 'string') ? JSON.parse(infoJson) : infoJson;
+      var p = Promise.resolve(handler({ source: source, action: action, info: info }));
+      p.then(function(v) {
+        if (v && typeof v === 'object' && typeof v.url === 'string') v = v.url;
+        globalThis.__lxResult = JSON.stringify({ ok: true, data: v });
+      }).catch(function(e) {
+        globalThis.__lxResult = JSON.stringify({ ok: false, msg: String(e && e.message || e) });
+      });
+    } catch (e) {
+      globalThis.__lxResult = JSON.stringify({ ok: false, msg: String(e && e.message || e), stack: String(e && e.stack || '').slice(0, 300) });
+    }
   };
 })();
 """

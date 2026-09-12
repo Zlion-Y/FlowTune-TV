@@ -14,8 +14,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -36,8 +36,14 @@ fun Sidebar(
     onSelect: (String) -> Unit,
     onOpenOnline: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenSponsor: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val firstFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(300)
+        firstFocus.requestFocus()
+    }
     Column(
         modifier
             .background(Color(0xFF1B1B1F))
@@ -49,7 +55,7 @@ fun Sidebar(
             fontSize = 13.sp,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
-        NavItem("搜索", icon = Icons.Filled.LibraryMusic, active = onlineTab == "search") { onOpenOnline("search") }
+        NavItem("搜索", icon = Icons.Filled.LibraryMusic, active = onlineTab == "search", focusRequester = firstFocus) { onOpenOnline("search") }
         NavItem("排行榜", icon = Icons.Filled.LibraryMusic, active = onlineTab == "charts") { onOpenOnline("charts") }
         NavItem("歌单", icon = Icons.Filled.LibraryMusic, active = onlineTab == "playlists") { onOpenOnline("playlists") }
 
@@ -62,14 +68,23 @@ fun Sidebar(
         )
         playlists.forEach { pl ->
             val selected = pl.id == selectedId
+            var rowFocused by remember { mutableStateOf(false) }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 2.dp)
-                    .background(if (selected) BgSelected else Color.Transparent, shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                    .background(
+                        when {
+                            rowFocused -> FocusBg
+                            selected -> BgSelected
+                            else -> Color.Transparent
+                        },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+                    )
                     .clickable { onSelect(pl.id) }
                     .focusable()
+                    .onFocusChanged { rowFocused = it.isFocused }
                     .padding(horizontal = 12.dp, vertical = 12.dp)
             ) {
                 Icon(
@@ -84,27 +99,35 @@ fun Sidebar(
         }
 
         Spacer(Modifier.weight(1f))
-        NavItem("赞助作者", icon = Icons.Filled.LibraryMusic)
+        NavItem("赞助作者", icon = Icons.Filled.LibraryMusic, onClick = onOpenSponsor)
         NavItem("设置", icon = Icons.Filled.Settings, onClick = onOpenSettings)
     }
 }
 
 @Composable
-private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, active: Boolean = false, onClick: (() -> Unit)? = null) {
+private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, active: Boolean = false, focusRequester: FocusRequester? = null, onClick: (() -> Unit)? = null) {
     var focused by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 2.dp)
-            .background(if (focused || active) BgSelected else Color.Transparent, shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+            .background(
+                when {
+                    focused -> FocusBg
+                    active -> BgSelected
+                    else -> Color.Transparent
+                },
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+            )
             .let { m -> if (onClick != null) m.clickable { onClick() } else m }
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .focusable()
             .onFocusChanged { focused = it.isFocused }
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
-        Icon(icon, contentDescription = null, tint = Color(0xFF9A9AA0), modifier = Modifier.size(18.dp))
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
-        Text(label, color = Color(0xFFEDEDEF), fontSize = 15.sp)
+        Text(label, color = Color.White, fontSize = 15.sp)
     }
 }

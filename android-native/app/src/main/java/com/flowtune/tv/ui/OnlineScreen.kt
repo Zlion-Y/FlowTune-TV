@@ -218,8 +218,8 @@ private fun Chip(label: String, active: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .background(
                 when {
+                    focused -> FocusBg
                     active -> ChipBgActive
-                    focused -> Color(0xFF2E2E33)
                     else -> ChipBg
                 },
                 androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
@@ -249,8 +249,8 @@ private fun OnlineRow(
             .fillMaxWidth()
             .background(
                 when {
+                    focused -> FocusBg
                     playing -> Color(0xFF1F3A5F)
-                    focused -> Color(0xFF2E2E33)
                     else -> Color.Transparent
                 }
             )
@@ -281,7 +281,7 @@ private fun OnlineRow(
         Column(Modifier.weight(1f)) {
             Text(
                 music.title,
-                color = if (playing) Accent else Color(0xFFEDEDEF),
+                color = if (focused || playing) Color.White else Color(0xFFEDEDEF),
                 fontSize = 15.sp, maxLines = 1
             )
             Text(

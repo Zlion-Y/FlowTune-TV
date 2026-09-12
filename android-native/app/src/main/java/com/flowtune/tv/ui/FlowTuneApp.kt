@@ -58,6 +58,7 @@ fun FlowTuneApp(state: AppState) {
                     onSelect = { state.selectedPlaylistId = it; state.onlineTab = null },
                     onOpenOnline = { state.onlineTab = it },
                     onOpenSettings = { state.showSettings = true },
+                    onOpenSponsor = { state.showSponsor = true },
                     modifier = Modifier.width(220.dp).fillMaxHeight(),
                 )
                 if (state.onlineTab != null) {
@@ -163,6 +164,11 @@ fun FlowTuneApp(state: AppState) {
                 state = state,
                 onClose = { state.showSettings = false },
             )
+        }
+
+        // 赞助作者
+        if (state.showSponsor) {
+            SponsorOverlay(onClose = { state.showSponsor = false })
         }
     }
 }

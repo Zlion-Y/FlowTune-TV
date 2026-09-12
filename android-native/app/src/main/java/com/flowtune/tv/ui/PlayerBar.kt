@@ -1,6 +1,9 @@
 package com.flowtune.tv.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -23,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.flowtune.tv.model.Song
 import com.flowtune.tv.player.PlayMode
 
-/** 底部播放栏：横跨全宽，含进度条；遥控器 OK=播放/暂停，左右=上下首。 */
+/** 底部播放栏：横跨全宽，含进度条；歌曲信息区聚焦后 OK=打开全屏播放页，控制键 OK=对应功能。 */
 @Composable
 fun PlayerBar(
     song: Song?,
@@ -65,15 +68,26 @@ fun PlayerBar(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
-            // 歌曲信息
-            Column(Modifier.width(220.dp)) {
+            // 歌曲信息（聚焦后 OK 打开全屏播放页）
+            var infoFocused by remember { mutableStateOf(false) }
+            Column(
+                Modifier
+                    .width(220.dp)
+                    .background(if (infoFocused) FocusBg else Color.Transparent, RoundedCornerShape(10.dp))
+                    .border(2.dp, if (infoFocused) FocusBorder else Color.Transparent, RoundedCornerShape(10.dp))
+                    .clickable { onOpenDetail() }
+                    .focusable()
+                    .onFocusChanged { infoFocused = it.isFocused }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
                 Text(
                     song?.title ?: "未播放",
-                    color = Color(0xFFEDEDEF), fontSize = 14.sp, maxLines = 1
+                    color = Color.White, fontSize = 14.sp, maxLines = 1
                 )
                 Text(
                     song?.artist?.ifBlank { "未知艺术家" } ?: "未知艺术家",
-                    color = Color(0xFF88888E), fontSize = 11.sp, maxLines = 1
+                    color = if (infoFocused) Color.White.copy(alpha = 0.9f) else Color(0xFF88888E),
+                    fontSize = 11.sp, maxLines = 1
                 )
             }
             Spacer(Modifier.weight(1f))
@@ -108,7 +122,7 @@ fun PlayerBar(
                 Text("解析中…", color = Color(0xFF4F8CFF), fontSize = 12.sp)
             } else {
                 Text(
-                    "${'$'}{formatTime(positionMs / 1000.0)} / ${'$'}{formatTime(durationMs / 1000.0)}",
+                    formatTime(positionMs / 1000.0) + " / " + formatTime(durationMs / 1000.0),
                     color = Color(0xFF9A9AA0), fontSize = 12.sp
                 )
             }

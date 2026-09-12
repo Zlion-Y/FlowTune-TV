@@ -12,13 +12,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flowtune.tv.model.EffectLevel
@@ -32,16 +30,19 @@ fun SettingsOverlay(
 ) {
     val settings by state.config.settings.collectAsState()
 
+    BackHandler(onBack = onClose)
+    val settingsFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(250)
+        runCatching { settingsFocus.requestFocus() }
+    }
     Box(
         Modifier
             .fillMaxSize()
             .background(Color(0xCC111114))
+            .focusRequester(settingsFocus)
             .focusable()
-            .onKeyEvent { e ->
-                if (e.type == KeyEventType.KeyUp && (e.key == Key.Back || e.key == Key.Escape)) {
-                    onClose(); true
-                } else false
-            }
+
     ) {
         Column(Modifier.fillMaxSize().padding(48.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -67,7 +68,7 @@ fun SettingsOverlay(
                                     .background(
                                         when {
                                             selected -> Color(0xFF4F8CFF)
-                                            focused -> Color(0xFF2E2E33)
+                                            focused -> FocusBg
                                             else -> Color(0xFF1F1F23)
                                         },
                                         RoundedCornerShape(12.dp)

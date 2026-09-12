@@ -12,8 +12,8 @@ android {
         applicationId = "com.flowtune.tv"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.1.1"
     }
 
     signingConfigs {
@@ -57,6 +57,7 @@ dependencies {
 
     // 媒体
     implementation("androidx.media3:media3-exoplayer:1.5.0")
+    implementation("androidx.media3:media3-datasource:1.5.0")
     implementation("androidx.media3:media3-common:1.5.0")
     implementation("androidx.media:media:1.7.0")
 

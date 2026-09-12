@@ -98,6 +98,7 @@ class OnlineRepository(private val config: ConfigRepository) {
     suspend fun resolvePlayUrl(song: Song, quality: String): Result<String> = withContext(Dispatchers.IO) {
         val m = song.online ?: return@withContext Result.failure(RuntimeException("非在线歌曲"))
         val active = _activeSource.value
+        android.util.Log.d("FlowTune/Online", "resolvePlayUrl source=${m.source} quality=$quality hasSource=${active != null}")
         if (active != null) {
             runCatching {
                 active.engine.callHandler(
@@ -108,6 +109,7 @@ class OnlineRepository(private val config: ConfigRepository) {
                         .toString()
                 )
             }.recoverCatching { err ->
+                android.util.Log.e("FlowTune/Online", "source resolve failed: ${err.message}")
                 if (m.source == "wy") {
                     Platforms.wyOuterUrl(m.songId)
                         ?: throw RuntimeException("音源解析失败：${err.message}")

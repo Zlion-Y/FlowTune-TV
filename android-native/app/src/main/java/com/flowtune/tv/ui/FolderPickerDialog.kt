@@ -6,6 +6,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -13,13 +14,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
@@ -60,18 +59,22 @@ fun FolderPickerDialog(
         loading = false
     }
 
+    BackHandler(enabled = current != null) {
+        current = current!!.parentFile?.takeIf { it.absolutePath != "/" && it.absolutePath != "/storage" }
+    }
+    BackHandler(enabled = current == null) { onDismiss() }
+    val dialogFocus = remember { FocusRequester() }
+    val firstRowFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(250)
+        runCatching { dialogFocus.requestFocus() }
+    }
     Box(
         Modifier
             .fillMaxSize()
             .background(Color(0x99000000))
-            .focusable()
-            .onKeyEvent { e ->
-                if (e.type == KeyEventType.KeyUp && (e.key == Key.Back || e.key == Key.Escape)) {
-                    if (current != null) current = current!!.parentFile?.takeIf { it.absolutePath != "/" && it.absolutePath != "/storage" }
-                    else onDismiss()
-                    true
-                } else false
-            },
+            .focusRequester(dialogFocus)
+            .focusable(),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -90,17 +93,17 @@ fun FolderPickerDialog(
                     item { Text("读取中…", color = Color(0xFF88888E), fontSize = 14.sp, modifier = Modifier.padding(16.dp)) }
                 } else {
                     if (current == null) {
-                        children.forEach { root ->
+                        children.forEachIndexed { idx, root ->
                             item(key = root.absolutePath) {
-                                PickerRow("▸ " + root.absolutePath) { current = root }
+                                PickerRow("▸ " + root.absolutePath, focusRequester = if (idx == 0) firstRowFocus else null) { current = root }
                             }
                         }
                     } else {
                         if (children.isEmpty()) {
                             item { Text("此文件夹为空", color = Color(0xFF6E6E74), fontSize = 14.sp, modifier = Modifier.padding(16.dp)) }
                         }
-                        items(children, key = { f: File -> f.absolutePath }) { dir ->
-                            PickerRow("▸ ${dir.name}") { current = dir }
+                        itemsIndexed(children, key = { _: Int, f: File -> f.absolutePath }) { idx: Int, dir: File ->
+                            PickerRow("▸ " + dir.name, focusRequester = if (idx == 0) firstRowFocus else null) { current = dir }
                         }
                     }
                 }
@@ -125,7 +128,7 @@ fun FolderPickerDialog(
 }
 
 @Composable
-private fun PickerRow(label: String, onClick: () -> Unit) {
+private fun PickerRow(label: String, focusRequester: FocusRequester? = null, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Text(
         label,
@@ -134,8 +137,9 @@ private fun PickerRow(label: String, onClick: () -> Unit) {
         maxLines = 1,
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (focused) Color(0xFF2E2E33) else Color.Transparent, RoundedCornerShape(8.dp))
+            .background(if (focused) FocusBg else Color.Transparent, RoundedCornerShape(8.dp))
             .clickable { onClick() }
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .focusable()
             .onFocusChanged { focused = it.isFocused }
             .padding(horizontal = 14.dp, vertical = 12.dp)
