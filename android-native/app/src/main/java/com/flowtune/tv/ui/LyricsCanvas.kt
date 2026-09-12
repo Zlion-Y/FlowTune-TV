@@ -72,28 +72,38 @@ fun LyricsCanvas(
         val currentIdx = currentIndex(lyrics, drawPos)
         if (currentIdx < 0) return@Canvas
 
-        val visibleRange = (currentIdx - 3)..(currentIdx + 5)
-        for (i in visibleRange) {
-            val line = lyrics.getOrNull(i) ?: continue
-            if (line.text.isBlank()) continue
-            val y = i * lineHeight - smoothScroll
-            if (y < -lineHeight || y > size.height + lineHeight) continue
+        // 裁剪到画布，防止超宽歌词行画进封面区域
+        withTransform({ clipRect(0f, 0f, size.width, size.height) }) {
+            val visibleRange = (currentIdx - 3)..(currentIdx + 5)
+            for (i in visibleRange) {
+                val line = lyrics.getOrNull(i) ?: continue
+                if (line.text.isBlank()) continue
+                val y = i * lineHeight - smoothScroll
+                if (y < -lineHeight || y > size.height + lineHeight) continue
 
-            val isCurrent = i == currentIdx
-            val style = TextStyle(
-                color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.34f),
-                fontSize = (if (isCurrent) 30 else 26).sp,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-            )
-            val measured = measurer.measure(line.text, style)
-            val x = (size.width - measured.size.width) / 2f
-            val lineY = y + (lineHeight - measured.size.height) / 2f
+                val isCurrent = i == currentIdx
+                var style = TextStyle(
+                    color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.34f),
+                    fontSize = (if (isCurrent) 30 else 26).sp,
+                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                )
+                var measured = measurer.measure(line.text, style)
+                if (measured.size.width > size.width) {
+                    // 长行按宽度比例缩小字号，避免裁切
+                    val base = style.fontSize.value
+                    val shrunk = (base * size.width / measured.size.width).toInt().coerceAtLeast(14)
+                    style = style.copy(fontSize = shrunk.sp)
+                    measured = measurer.measure(line.text, style)
+                }
+                val x = (size.width - measured.size.width) / 2f
+                val lineY = y + (lineHeight - measured.size.height) / 2f
 
-            if (isCurrent && line.words.isNotEmpty()) {
-                // 逐字渐变填充：已唱部分亮、未唱暗
-                drawWordByWord(measurer, line, style, x, lineY, size.width, drawPos)
-            } else {
-                drawText(measured, topLeft = Offset(x, lineY))
+                if (isCurrent && line.words.isNotEmpty()) {
+                    // 逐字渐变填充：已唱部分亮、未唱暗
+                    drawWordByWord(measurer, line, style, x, lineY, size.width, drawPos)
+                } else {
+                    drawText(measured, topLeft = Offset(x, lineY))
+                }
             }
         }
     }

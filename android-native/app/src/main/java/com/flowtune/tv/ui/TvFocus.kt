@@ -7,14 +7,15 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
 /**
- * TV 焦点高亮统一规范：蓝底白字 + 外围光圈。
- * 用户反馈纯蓝底在电视上仍不够醒目，光圈 = 最外 3dp 白线 + 其外 8dp 半透明蓝晕。
+ * TV 焦点光圈：仅在当前聚焦的控件上出现（2dp 白线 + 4dp 蓝晕）。
+ * 必须用条件挂载而非 border(0.dp)——0dp border 会按 1px hairline 渲染，
+ * 导致所有控件常亮细边。
  */
 val FocusBg = Color(0xFF4F8CFF)
 val FocusGlow = Color(0xFF4F8CFF)
 
-/** 聚焦时叠加白线+光圈；border 画在 bounds 内，0dp 时不影响布局。 */
 fun Modifier.tvFocusGlow(focused: Boolean, shape: Shape): Modifier =
-    this
-        .border(if (focused) 8.dp else 0.dp, FocusGlow.copy(alpha = 0.40f), shape)
-        .border(if (focused) 3.dp else 0.dp, Color.White, shape)
+    if (focused) this
+        .border(4.dp, FocusGlow.copy(alpha = 0.55f), shape)
+        .border(2.dp, Color.White, shape)
+    else this

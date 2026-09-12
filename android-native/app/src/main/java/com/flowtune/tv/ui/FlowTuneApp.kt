@@ -30,6 +30,7 @@ fun FlowTuneApp(state: AppState) {
 
     val currentSong = queue.getOrNull(current)
     val activePlaylist = playlists.firstOrNull { it.id == state.selectedPlaylistId }
+    var showExit by remember { mutableStateOf(false) }
 
     BackHandler(enabled = state.showPlayerDetail) { state.showPlayerDetail = false }
     BackHandler(enabled = state.showQueue) { state.showQueue = false }
@@ -41,6 +42,11 @@ fun FlowTuneApp(state: AppState) {
             else -> state.onlineTab = null
         }
     }
+    // 兜底：无任何覆盖层时 BACK = 退出确认（后台播放 / 退出软件）
+    BackHandler(
+        enabled = !state.showPlayerDetail && !state.showQueue && !state.showSettings &&
+                !state.showSponsor && state.onlineTab == null
+    ) { showExit = true }
     LaunchedEffect(Unit) { state.loadPlaylists() }
     // 换歌自动加载歌词（点歌/上/下一首统一走这里）
     LaunchedEffect(currentSong?.id) { state.loadLyricsFor(currentSong) }
@@ -171,6 +177,11 @@ fun FlowTuneApp(state: AppState) {
         // 赞助作者
         if (state.showSponsor) {
             SponsorOverlay(onClose = { state.showSponsor = false })
+        }
+
+        // 退出确认（后台播放 / 退出软件）
+        if (showExit) {
+            ExitConfirmDialog(onDismiss = { showExit = false })
         }
     }
 }
