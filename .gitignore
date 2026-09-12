@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Frontend build output
+dist/
+
+# Rust / Tauri build output
+src-tauri/target/
+src-tauri/gen/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+node_modules
+dist
+FluentPlayer-TV*.apk
+android/.gradle
+android/app/build
+android/local.properties
+android/app/src/main/assets
+android-native/.gradle
+android-native/app/build
+android-native/local.properties
+FlowTune-native-universal.apk
+x_FlowTune-universal/
+ci-apk/
+FlowTune-*.apk

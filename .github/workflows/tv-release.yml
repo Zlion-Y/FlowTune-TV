@@ -1,0 +1,86 @@
+name: TV Release
+
+# 推送 tag（如 v1.0.0）时构建 Android TV APK 并发布 Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Build web (chrome70 target)
+        run: |
+          npm ci
+          npm run build
+        env:
+          FP_TARGET: chrome70
+
+      - name: Upload web dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+
+  build-apk:
+    needs: build-web
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Copy dist into Android assets
+        run: |
+          mkdir -p android/app/src/main/assets
+          rm -rf android/app/src/main/assets/*
+          cp -r dist/* android/app/src/main/assets/
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Build APKs (armv7 + arm64 + universal)
+        run: |
+          cd android
+          gradle assembleRelease --no-daemon || (gradle wrapper --gradle-version 8.10.2 && ./gradlew assembleRelease --no-daemon)
+
+      - name: Rename artifacts
+        run: |
+          cd android/app/build/outputs/apk/release
+          cp app-armeabi-v7a-release.apk FlowTune-armv7.apk
+          cp app-arm64-v8a-release.apk FlowTune-arm64.apk
+          cp app-universal-release.apk FlowTune-universal.apk
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            android/app/build/outputs/apk/release/FlowTune-armv7.apk
+            android/app/build/outputs/apk/release/FlowTune-arm64.apk
+            android/app/build/outputs/apk/release/FlowTune-universal.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

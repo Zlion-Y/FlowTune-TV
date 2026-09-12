@@ -1,0 +1,2 @@
+-keep class com.flowtune.tv.** { *; }
+-dontwarn org.jaudiotagger.**
