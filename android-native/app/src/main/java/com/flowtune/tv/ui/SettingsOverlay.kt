@@ -51,43 +51,6 @@ fun SettingsOverlay(
                     Spacer(Modifier.height(10.dp))
                     SourceManager(state, firstFocus = firstFocus)
                     Spacer(Modifier.height(28.dp))
-                    Text("动效档位（按盒子性能调整）", color = Color(0xFF9A9AA0), fontSize = 13.sp)
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        EffectLevel.entries.forEach { level ->
-                            val selected = settings.effectLevel == level
-                            var focused by remember { mutableStateOf(false) }
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .background(
-                                        if (selected) Color(0xFF4F8CFF) else Color(0xFF1F1F23),
-                                        RoundedCornerShape(12.dp)
-                                    )
-                                    .tvFocusGlow(focused, RoundedCornerShape(12.dp))
-                                    .onFocusChanged { focused = it.isFocused }
-                                    .clickable {
-                                        state.config.updateSettings {
-                                            it.copy(effectLevel = level, effectLevelTouched = true)
-                                        }
-                                    }
-                                    .padding(horizontal = 20.dp, vertical = 14.dp)
-                            ) {
-                                Text(level.label, color = Color.White, fontSize = 15.sp)
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    when (level) {
-                                        EffectLevel.OFF -> "无动效·最省电"
-                                        EffectLevel.LOW -> "封面倒影"
-                                        EffectLevel.MEDIUM -> "逐字歌词·动态背景"
-                                        EffectLevel.HIGH -> "全特效"
-                                    },
-                                    color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(24.dp))
                     var autoOpenFocused by remember { mutableStateOf(false) }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -105,15 +68,6 @@ fun SettingsOverlay(
                             color = Color.White, fontSize = 15.sp
                         )
                     }
-                    Spacer(Modifier.height(24.dp))
-                    Text(
-                        "档位说明：\n" +
-                                "· 关闭：15fps 逐行歌词，无任何动画（老盒子推荐）\n" +
-                                "· 低：20fps + 封面倒影\n" +
-                                "· 中：30fps + 逐字弹簧歌词 + 动态背景\n" +
-                                "· 高：45fps + 未唱行模糊 + 全部效果",
-                        color = Color(0xFF88888E), fontSize = 12.sp
-                    )
                 }
             }
         }

@@ -106,6 +106,11 @@ class PlaybackController(
             while (true) {
                 if (player.isPlaying) {
                     _positionMs.value = player.currentPosition
+                    val d = player.duration
+                    if (d > 0 && d != _durationMs.value) {
+                        _durationMs.value = d
+                        _queue.value.getOrNull(_index.value)?.let { updateMetadataDuration(d, it) }
+                    }
                     updateSessionState()
                 }
                 delay(250)
@@ -215,6 +220,15 @@ class PlaybackController(
     fun release() {
         session.release()
         player.release()
+    }
+
+    private fun updateMetadataDuration(durationMs: Long, song: Song) {
+        session.setMetadata(MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.artist)
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.album)
+            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs)
+            .build())
     }
 
     private fun updateMetadata(song: Song) {

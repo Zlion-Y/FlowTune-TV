@@ -138,7 +138,7 @@ fun FlowTuneApp(state: AppState) {
                 isPlaying = isPlaying,
                 positionMs = position,
                 durationMs = duration,
-                effectLevel = settings.effectLevel,
+                effectLevel = com.flowtune.tv.model.EffectLevel.MEDIUM,
                 onClose = { state.showPlayerDetail = false },
             )
         }

@@ -215,13 +215,6 @@ fun PlayerDetailOverlay(
             }
         }
 
-        // 顶部提示
-        Text(
-            "返回键退出全屏",
-            color = Color(0x80EDEDEF), fontSize = 11.sp,
-            modifier = Modifier.align(Alignment.TopStart).padding(20.dp)
-        )
-
         // 底栏：进度条横贯 + 歌名 | 控制 | 时间/音质/倍速（一比一还原，4s 自动隐藏）
         AnimatedVisibility(
             visible = controlsVisible,

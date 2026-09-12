@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flowtune.tv.model.Playlist
 
-private val BgSelected = Color(0xFF2E2E33)
+private val BgSelected = Color(0xFF26262C)
 private val Accent = Color(0xFF4F8CFF)
 
 @Composable
