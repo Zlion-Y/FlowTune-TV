@@ -113,9 +113,9 @@ private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.Ima
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
             )
             .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
             .let { m -> if (onClick != null) m.clickable { onClick() } else m }
-            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))

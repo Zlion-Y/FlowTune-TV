@@ -251,9 +251,9 @@ private fun OnlineRow(
                 if (playing) Color(0xFF1F3A5F) else Color.Transparent
             )
             .tvFocusGlow(focused, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
             .clickable { onPlay() }
-            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onKeyEvent { e ->
                 if (e.type == KeyEventType.KeyUp && focused) {
                     when (e.key) {

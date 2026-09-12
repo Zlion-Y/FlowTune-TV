@@ -139,9 +139,9 @@ private fun PickerRow(label: String, focusRequester: FocusRequester? = null, onC
             .fillMaxWidth()
             .background(Color.Transparent, RoundedCornerShape(8.dp))
             .tvFocusGlow(focused, RoundedCornerShape(8.dp))
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
             .clickable { onClick() }
-            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     )
 }
