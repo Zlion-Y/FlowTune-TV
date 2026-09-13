@@ -39,6 +39,7 @@ fun FlowTuneApp(state: AppState) {
         when (state.onlineTab) {
             "charts" -> if (state.boardSongs != null) state.boardSongs = null else state.onlineTab = null
             "playlists" -> if (state.playlistSongs != null) state.playlistSongs = null else state.onlineTab = null
+            "albums" -> if (state.albumSongs != null) state.albumSongs = null else state.onlineTab = null
             else -> state.onlineTab = null
         }
     }
@@ -48,6 +49,13 @@ fun FlowTuneApp(state: AppState) {
                 !state.showSponsor && state.onlineTab == null
     ) { showExit = true }
     LaunchedEffect(Unit) { state.loadPlaylists() }
+    // 进入对应 tab 时拉取二级列表
+    LaunchedEffect(state.onlineTab) {
+        when (state.onlineTab) {
+            "playlists" -> state.loadPlaylists()
+            "albums" -> state.loadAlbums()
+        }
+    }
     // 换歌自动加载歌词（点歌/上/下一首统一走这里）
     LaunchedEffect(currentSong?.id) {
         state.loadLyricsFor(currentSong)
@@ -85,9 +93,15 @@ fun FlowTuneApp(state: AppState) {
                         boards = com.flowtune.tv.online.Platforms.wyBoards,
                         onBoardClick = { state.loadBoard(it) },
                         boardSongs = state.boardSongs,
+                        selectedBoardId = state.selectedBoardId,
                         playlists = state.playlists,
                         onPlaylistClick = { state.loadPlaylistDetail(it) },
                         playlistSongs = state.playlistSongs,
+                        selectedOnlinePlaylistId = state.selectedOnlinePlaylistId,
+                        albums = state.albums,
+                        onAlbumClick = { state.loadAlbumDetail(it) },
+                        albumSongs = state.albumSongs,
+                        selectedAlbumId = state.selectedAlbumId,
                         currentSongId = currentSong?.id,
                         isSearching = state.isSearching,
                         onPlay = { m -> state.playOnline(listOf(m), 0) },

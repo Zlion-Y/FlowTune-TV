@@ -55,9 +55,10 @@ fun Sidebar(
             fontSize = 13.sp,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
-        NavItem("搜索", icon = Icons.Filled.LibraryMusic, active = onlineTab == "search", focusRequester = firstFocus) { onOpenOnline("search") }
+        NavItem("歌单", icon = Icons.Filled.LibraryMusic, active = onlineTab == "playlists", focusRequester = firstFocus) { onOpenOnline("playlists") }
+        NavItem("专辑", icon = Icons.Filled.LibraryMusic, active = onlineTab == "albums") { onOpenOnline("albums") }
         NavItem("排行榜", icon = Icons.Filled.LibraryMusic, active = onlineTab == "charts") { onOpenOnline("charts") }
-        NavItem("歌单", icon = Icons.Filled.LibraryMusic, active = onlineTab == "playlists") { onOpenOnline("playlists") }
+        NavItem("搜索", icon = Icons.Filled.LibraryMusic, active = onlineTab == "search") { onOpenOnline("search") }
 
         Spacer(Modifier.height(24.dp))
         Text(

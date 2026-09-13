@@ -194,6 +194,37 @@ object Platforms {
         }
     }
 
+    /** 网易云新碟上架（专辑列表，复用 OnlinePlaylist 承载）。 */
+    fun wyHotAlbums(page: Int, limit: Int = 30): List<OnlinePlaylist> {
+        val data = eapiGetJson(
+            "/api/album/new",
+            JSONObject()
+                .put("area", "ALL")
+                .put("limit", limit)
+                .put("offset", limit * (page - 1))
+                .put("total", true)
+        )
+        val arr = data.optJSONArray("albums") ?: return emptyList()
+        return (0 until arr.length()).mapNotNull { i ->
+            val a = arr.optJSONObject(i) ?: return@mapNotNull null
+            OnlinePlaylist(
+                id = a.optString("id"),
+                name = a.optString("name"),
+                picUrl = a.optString("picUrl", null).takeIf { it.isNotEmpty() },
+                playCount = 0,
+                trackCount = a.optLong("size", 0),
+            )
+        }
+    }
+
+    fun wyAlbumSongs(id: String): List<OnlineMusic> {
+        val data = eapiGetJson("/api/v1/album/$id", JSONObject())
+        val songs = data.optJSONArray("songs") ?: return emptyList()
+        return (0 until songs.length()).mapNotNull { i ->
+            songs.optJSONObject(i)?.let { wyNormalize(it) }
+        }
+    }
+
     /** 网易云歌词（原文+翻译）。 */
     fun wyLyric(songId: String): Pair<String, String> {
         val data = eapiGetJson(

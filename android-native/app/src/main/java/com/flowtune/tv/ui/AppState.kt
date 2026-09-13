@@ -39,6 +39,11 @@ class AppState(
     var boardSongs by mutableStateOf<List<OnlineMusic>?>(null)
     var playlistSongs by mutableStateOf<List<OnlineMusic>?>(null)
     var playlists by mutableStateOf<List<OnlinePlaylist>>(emptyList())
+    var albumSongs by mutableStateOf<List<OnlineMusic>?>(null)
+    var albums by mutableStateOf<List<OnlinePlaylist>>(emptyList())
+    var selectedBoardId by mutableStateOf<String?>(null)
+    var selectedOnlinePlaylistId by mutableStateOf<String?>(null)
+    var selectedAlbumId by mutableStateOf<String?>(null)
 
     val currentPlaylist: Playlist?
         get() = config.playlists.value.firstOrNull { it.id == selectedPlaylistId }
@@ -115,7 +120,28 @@ class AppState(
     fun loadBoard(boardId: String) {
         CoroutineScope(Dispatchers.IO).launch {
             val r = runCatching { com.flowtune.tv.online.Platforms.wyBoardSongs(boardId) }
-            withContext(Dispatchers.Main) { boardSongs = r.getOrDefault(emptyList()) }
+            withContext(Dispatchers.Main) {
+                selectedBoardId = boardId
+                boardSongs = r.getOrDefault(emptyList())
+            }
+        }
+    }
+
+    fun loadAlbums() {
+        if (albums.isNotEmpty()) return
+        CoroutineScope(Dispatchers.IO).launch {
+            val r = runCatching { com.flowtune.tv.online.Platforms.wyHotAlbums(1) }
+            withContext(Dispatchers.Main) { albums = r.getOrDefault(emptyList()) }
+        }
+    }
+
+    fun loadAlbumDetail(id: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val r = runCatching { com.flowtune.tv.online.Platforms.wyAlbumSongs(id) }
+            withContext(Dispatchers.Main) {
+                selectedAlbumId = id
+                albumSongs = r.getOrDefault(emptyList())
+            }
         }
     }
 
@@ -129,7 +155,10 @@ class AppState(
     fun loadPlaylistDetail(id: String) {
         CoroutineScope(Dispatchers.IO).launch {
             val r = runCatching { com.flowtune.tv.online.Platforms.wyPlaylistDetail(id) }
-            withContext(Dispatchers.Main) { playlistSongs = r.getOrDefault(emptyList()) }
+            withContext(Dispatchers.Main) {
+                selectedOnlinePlaylistId = id
+                playlistSongs = r.getOrDefault(emptyList())
+            }
         }
     }
 }
