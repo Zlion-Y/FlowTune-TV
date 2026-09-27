@@ -54,6 +54,9 @@ class PlaybackController(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    // 在线播放代号：每次 playAt 递增；解析回来时对不上就说明用户已切歌
+    private var playGeneration = 0L
+
     fun clearError() { _error.value = null }
 
     val currentSong: Song? get() = _queue.value.getOrNull(_index.value)
@@ -129,12 +132,16 @@ class PlaybackController(
 
     fun playAt(index: Int) {
         val song = _queue.value.getOrNull(index) ?: return
+        // 代号递增：快速切歌时让上一首仍在解析的协程自行作废，
+        // 防止慢的旧解析回来 setMediaItem 覆盖新歌（UI 显示 B 实际放 A）
+        playGeneration++
         _index.value = index
         _error.value = null
         if (song.online == null) {
             playLocal(song)
         } else {
-            scope.launch { playOnline(song) }
+            val gen = playGeneration
+            scope.launch { playOnline(song, gen) }
         }
     }
 
@@ -146,11 +153,12 @@ class PlaybackController(
         updateMetadata(song)
     }
 
-    private suspend fun playOnline(song: Song) {
+    private suspend fun playOnline(song: Song, gen: Long) {
         _loading.value = true
         try {
             val url = urlResolver?.invoke(song)?.getOrThrow()
                 ?: throw RuntimeException("未配置音源")
+            if (gen != playGeneration) return // 解析期间已切歌：丢弃过期结果，也别动新歌的 loading
             _loading.value = false
             val item = MediaItem.fromUri(url)
             player.setMediaItem(item)
@@ -158,6 +166,7 @@ class PlaybackController(
             player.play()
             updateMetadata(song)
         } catch (e: Exception) {
+            if (gen != playGeneration) return // 过期请求的失败不再覆盖新歌的状态
             android.util.Log.e("FlowTune/Online", "playOnline failed", e)
             _loading.value = false
             _isPlaying.value = false

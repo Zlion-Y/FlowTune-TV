@@ -176,21 +176,24 @@ class LxSourceEngine private constructor(private val quickJs: QuickJs) {
      * 返回处理器结果（通常为 URL 字符串）。
      */
     suspend fun callHandler(action: String, source: String, infoJson: String, timeoutMs: Long = 25_000): String {
-        quickJs.evaluate<Any?>("globalThis.__lxResult = null;")
+        // 每次调用用独立的结果槽位：上一个超时调用迟到的回写只会落进自己的
+        // 槽位，不会再污染下一次调用（共享 __lxResult 时下一首会拿到上一首的 URL）
+        val slot = "__lxResult_" + java.util.UUID.randomUUID().toString().replace("-", "")
         quickJs.evaluate<Any?>(
-            "__lxCallFire(${jStr(action)}, ${jStr(source)}, ${jStr(infoJson)});",
+            "__lxCallFire(${jStr(action)}, ${jStr(source)}, ${jStr(infoJson)}, ${jStr(slot)});",
             filename = "lx-fire.js"
         )
         // 轮询触发 Promise 任务泵：quickjs-kt 每次 evaluate 都会执行 pending jobs
         withTimeout(timeoutMs) {
             while (true) {
                 delay(25)
-                val r = quickJs.evaluate<String?>("globalThis.__lxResult")
+                val r = quickJs.evaluate<String?>("globalThis.$slot")
                 if (r != null) break
             }
         }
-        val raw = quickJs.evaluate<String?>("globalThis.__lxResult")
+        val raw = quickJs.evaluate<String?>("globalThis.$slot")
             ?: throw RuntimeException("音源响应超时")
+        quickJs.evaluate<Any?>("globalThis.$slot = null;") // 用完即清，别让结果常驻 VM
         android.util.Log.d("FlowTune/Online", "lx callHandler action=$action -> $raw")
         val obj = org.json.JSONObject(raw)
         if (!obj.optBoolean("ok")) throw RuntimeException(obj.optString("msg", "音源返回失败"))
@@ -326,21 +329,20 @@ class LxSourceEngine private constructor(private val quickJs: QuickJs) {
     },
   };
 
-  globalThis.__lxResult = null;
-  globalThis.__lxCallFire = function(action, source, infoJson) {
+  globalThis.__lxCallFire = function(action, source, infoJson, slot) {
     var handler = globalThis.__lxHandler;
-    if (!handler) { globalThis.__lxResult = JSON.stringify({ok:false, msg:'音源脚本未初始化'}); return; }
+    if (!handler) { globalThis[slot] = JSON.stringify({ok:false, msg:'音源脚本未初始化'}); return; }
     try {
       var info = (typeof infoJson === 'string') ? JSON.parse(infoJson) : infoJson;
       var p = Promise.resolve(handler({ source: source, action: action, info: info }));
       p.then(function(v) {
         if (v && typeof v === 'object' && typeof v.url === 'string') v = v.url;
-        globalThis.__lxResult = JSON.stringify({ ok: true, data: v });
+        globalThis[slot] = JSON.stringify({ ok: true, data: v });
       }).catch(function(e) {
-        globalThis.__lxResult = JSON.stringify({ ok: false, msg: String(e && e.message || e) });
+        globalThis[slot] = JSON.stringify({ ok: false, msg: String(e && e.message || e) });
       });
     } catch (e) {
-      globalThis.__lxResult = JSON.stringify({ ok: false, msg: String(e && e.message || e), stack: String(e && e.stack || '').slice(0, 300) });
+      globalThis[slot] = JSON.stringify({ ok: false, msg: String(e && e.message || e), stack: String(e && e.stack || '').slice(0, 300) });
     }
   };
 })();

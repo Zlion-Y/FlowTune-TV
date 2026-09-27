@@ -40,7 +40,10 @@ fun LyricsCanvas(
     val measurer = rememberTextMeasurer()
     val frameInterval = (1000 / effectLevel.lyricFps).toLong()
     val spring = effectLevel.wordSpring
-    val currentPos by androidx.compose.runtime.rememberUpdatedState(positionMs)
+    val currentPos by rememberUpdatedState(positionMs)
+    // 帧泵的 LaunchedEffect 只按 (frameInterval, spring) 启动一次，闭包里直接
+    // 读 lyrics 会永远拿到首次组合时的空列表——换歌后歌词不滚动、错位高亮
+    val currentLyrics by rememberUpdatedState(lyrics)
 
     var drawPos by remember { mutableLongStateOf(0L) }
     var smoothScroll by remember { mutableStateOf(0f) }
@@ -51,9 +54,10 @@ fun LyricsCanvas(
     LaunchedEffect(frameInterval, spring) {
         while (true) {
             drawPos = currentPos
-            if (canvasH > 0f && lyrics.isNotEmpty()) {
+            val lines = currentLyrics
+            if (canvasH > 0f && lines.isNotEmpty()) {
                 val lineHeight = canvasH * LINE_H_RATIO
-                val idx = currentIndex(lyrics, drawPos)
+                val idx = currentIndex(lines, drawPos)
                 if (idx >= 0) {
                     val target = idx * lineHeight - canvasH * HEAD_RATIO
                     smoothScroll = when {
