@@ -34,3 +34,6 @@ FlowTune-native-universal.apk
 x_FlowTune-universal/
 ci-apk/
 FlowTune-*.apk
+
+# 签名密钥不入库
+android-native/app/flowtune.jks

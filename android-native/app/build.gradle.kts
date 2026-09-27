@@ -4,6 +4,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// 签名信息一律从环境变量或 android-native/local.properties 读取，绝不入库
+// （local.properties 已被 .gitignore 忽略；CI 走 FLOWTUNE_KEYSTORE_B64 等 secrets）
+val signingProps = java.util.Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun signingProp(key: String): String? = System.getenv(key) ?: signingProps.getProperty(key)
+
+val flowtuneStoreFile = signingProp("FLOWTUNE_STORE_FILE")
+val hasReleaseKeystore = !flowtuneStoreFile.isNullOrBlank() && file(flowtuneStoreFile).exists()
+
 android {
     namespace = "com.flowtune.tv"
     compileSdk = 36
@@ -26,19 +37,23 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file("flowtune.jks")
-            storePassword = "flowtune2026"
-            keyAlias = "flowtune"
-            keyPassword = "flowtune2026"
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = file(flowtuneStoreFile!!)
+                storePassword = signingProp("FLOWTUNE_STORE_PASSWORD")
+                keyAlias = signingProp("FLOWTUNE_KEY_ALIAS")
+                keyPassword = signingProp("FLOWTUNE_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
-            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // 未配置 keystore 时退回 debug 签名，保证 assembleRelease 不至于直接失败
+            signingConfig = if (hasReleaseKeystore) signingConfigs.getByName("release")
+                            else signingConfigs.getByName("debug")
         }
     }
     compileOptions {
